@@ -3,12 +3,9 @@ import 'package:audionotee/micheals/hole_widget.dart';
 import 'package:audionotee/micheals/main.dart';
 import 'package:audionotee/micheals/widgets/mini_video_player.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 void main() {
-  runApp(ChangeNotifierProvider(
-      create: (context) => OverlayStateProvider(),
-      builder: (providercontext, child) => MyApp()));
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -65,7 +62,7 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
-              CameraAwesomeApp(),
+              CameraPage(),
             ],
           ),
         ),
