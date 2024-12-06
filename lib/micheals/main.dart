@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audionotee/camera_audionote.dart';
 import 'package:audionotee/micheals/timer_controller.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
@@ -9,19 +10,6 @@ import 'package:vibration/vibration.dart';
 
 import 'overlay_screen.dart';
 import 'widgets/mini_video_player.dart';
-
-void main() {
-  runApp(const CameraAwesomeApp());
-}
-
-class CameraAwesomeApp extends StatelessWidget {
-  const CameraAwesomeApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return CameraPage();
-  }
-}
 
 class DragValue {
   final double x;
@@ -40,14 +28,15 @@ class DragValue {
   }
 }
 
-class CameraPage extends StatefulWidget {
-  const CameraPage({super.key});
+class VideNotebutton extends StatefulWidget {
+  final Function(String) onAddFile;
+  const VideNotebutton({super.key, required this.onAddFile});
 
   @override
-  State<CameraPage> createState() => _CameraPageState();
+  State<VideNotebutton> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> {
+class _CameraPageState extends State<VideNotebutton> {
   String? _videoPath;
 
   double buttonOffsetY = 0.0; // Vertical offset
@@ -63,6 +52,7 @@ class _CameraPageState extends State<CameraPage> {
   bool isLocked = false;
   bool isValidDuration = false;
   double? lastRecord;
+
   @override
   void initState() {
     super.initState();
@@ -93,17 +83,15 @@ class _CameraPageState extends State<CameraPage> {
     return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
-  void startRecording() {
+  var retriesLeft = 5;
+
+  void startRecording() async {
     try {
       isCurrentlyRecording = true;
-      // cameraController.init(CameraContext())
-      cameraController?.currentCameraState?.when(
-        onVideoRecordingMode: (_) {
-          cameraController.startRecording().then((on) {
-            _recordingController.startRecording();
-          }); // Handle state if needed
-        },
-      );
+      cameraController.startRecording().then((on) {
+        _recordingController.startRecording();
+      }); // Handle state if needed
+
       lockObs = 0;
       setState(() {});
       setStatee?.call(() {});
@@ -111,7 +99,14 @@ class _CameraPageState extends State<CameraPage> {
       isLocked = false;
       debugPrint(e.toString());
       setState(() {});
-      cancelOnLock();
+      if (retriesLeft > 0) {
+        await Future.delayed(const Duration(seconds: 1));
+        retriesLeft -= 1;
+        setState(() {});
+        startRecording();
+      } else {
+        cancelOnLock();
+      }
     }
   }
 
@@ -173,14 +168,23 @@ class _CameraPageState extends State<CameraPage> {
     setStatee?.call(() {});
   }
 
+  void disposeOverlay() {
+    myOverayEntry?.remove();
+    myOverayEntry = null;
+    setStatee = null;
+  }
+
   void sendOnDone() {
     isCurrentlyRecording = false;
     isValidDuration = _recordingController.isRecordingValid;
     lastRecord = _recordingController.stopRecording();
     cameraController.stopRecording();
     sendRecording = true;
-    recording.add(_videoPath!);
+    if (_videoPath != null) {
+      widget.onAddFile(_videoPath!);
+    }
     _videoPath = null;
+    disposeOverlay();
     isLocked = false;
     lockObs = 0;
     buttonOffsetY = 0;
@@ -195,6 +199,7 @@ class _CameraPageState extends State<CameraPage> {
       isLocked = false;
       buttonOffsetY = 0;
       buttonOffsetX = 0;
+      disposeOverlay();
       lastRecord = null;
       lockObs = 0;
     });
@@ -231,180 +236,54 @@ class _CameraPageState extends State<CameraPage> {
       builder: (context) {
         return StatefulBuilder(builder: (context, setState2) {
           setStatee = setState2;
-          return Scaffold(
-            body: Stack(
-              children: [
-                // if (isCurrentlyRecording)
-                IgnorePointer(
-                  ignoring:
-                      !isCurrentlyRecording, // Disable interaction when not recording
-                  child: OverlayScreen(
-                    isRecording: isCurrentlyRecording,
-                    recordingController: _recordingController,
-                    isValidDuration: isValidDuration,
-                    cameraController: cameraController,
-                    lockObs: lockObs,
-                    isLocked: isLocked,
-                    onError: () {
-                      cancelOnLock();
-                    },
-                    onDone: (String path) {
-                      _videoPath = path;
-                      debugPrint("OnDonePath is $_videoPath");
-                      setState(() {
-                        sendOnLock();
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            bottomSheet: BottomAppBar(
-              height: 100,
-              color: Colors.white,
-              elevation: 5,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 1.0),
-                child: !isLocked
-                    ? Stack(
-                        children: [
-                          AnimatedPositioned(
-                              key: ValueKey(true),
-                              duration: const Duration(milliseconds: 500),
-                              bottom: 0,
-                              top: 0,
-                              left: isCurrentlyRecording
-                                  ? 0
-                                  : MediaQuery.of(context).size.width,
-                              child: ValueListenableBuilder<double>(
-                                valueListenable:
-                                    _recordingController.recordingDuration,
-                                builder: (context, duration, child) {
-                                  return Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        'assets/recording.svg',
-                                        width: 20,
-                                        height: 20,
-                                      ),
-                                      const SizedBox(
-                                        width: 10,
-                                      ),
-                                      Text(
-                                        formatDuration(duration.round()),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              )),
-                          if (!isLocked) ...[
-                            AnimatedPositioned(
-                              duration: const Duration(milliseconds: 500),
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              top: 0,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SvgPicture.asset(
-                                    "assets/delete.svg",
-                                    width: 25,
-                                    height: 25,
-                                  ),
-                                  const Text(
-                                    "Slide to cancel",
-                                    style: TextStyle(color: Color(0xFF475467)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            top: 0,
-                            child: ValueListenableBuilder(
-                              valueListenable: buttonOffsetX2,
-                              builder: (context, value, child) => Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: AnimatedScale(
-                                  duration: const Duration(milliseconds: 100),
-                                  scale: isCurrentlyRecording ? scale : 1,
-                                  child: Transform.translate(
-                                    offset: Offset(value.x, value.y),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                          color: isCurrentlyRecording
-                                              ? Colors.red
-                                              : const Color(0x2A767680),
-                                          shape: BoxShape.circle),
-                                      padding: const EdgeInsets.all(5),
-                                      child: SvgPicture.asset(
-                                        "assets/camera_icon.svg",
-                                        key: ValueKey<bool>(
-                                            isCurrentlyRecording),
-                                        width: 30,
-                                        colorFilter: ColorFilter.mode(
-                                            isCurrentlyRecording
-                                                ? Colors.white
-                                                : const Color(0xFF858E99),
-                                            BlendMode.srcIn),
-                                        height: 30,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+          return (_videoPath != null)
+              ? PopScope(
+                  canPop: true, // Allow back navigation
+                  onPopInvokedWithResult: (bool didPop, Object? result) async {
+                    if (didPop) {
+                      cancelOnDone();
+                      return;
+                    }
+                  },
+                  child: Scaffold(
+                    body: Center(
+                      child: SizedBox(
+                        width: context.getWidth() * 0.9,
+                        height: context.getWidth() * 0.9,
+                        child: MiniVideoPlayer(
+                          radius: context.getWidth() / 2.4,
+                          show: true,
+                          filePath: _videoPath!,
+                          autoPlay: true,
+                        ),
+                      ),
+                    ),
+                    floatingActionButtonLocation:
+                        FloatingActionButtonLocation.centerFloat,
+                    backgroundColor: Colors.white,
+                    bottomNavigationBar: Container(
+                      height: 100,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              cancelOnLock();
-                            },
-                            icon: SvgPicture.asset(
-                              "assets/delete.svg",
-                              width: 25,
-                              height: 25,
-                            ),
+                              onPressed: () {
+                                cancelOnDone();
+                              },
+                              icon: const Icon(Icons.delete)),
+                          Text(
+                            "${lastRecord?.round()}s",
+                            style: const TextStyle(
+                                fontSize: 18, color: Colors.red),
                           ),
-                          Spacer(),
-                          ValueListenableBuilder<double>(
-                            valueListenable:
-                                _recordingController.recordingDuration,
-                            builder: (context, duration, child) {
-                              return Row(
-                                children: [
-                                  Text(
-                                    formatDuration(duration.round()),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          Spacer(),
-                          GestureDetector(
-                            onTap: () {
-                              sendOnDone();
-                            },
-                            child: const CircleAvatar(
-                              backgroundColor: Color(0xFFFDD400),
-                              child: Icon(
+                          CircleAvatar(
+                            backgroundColor: const Color(0xFFFDD400),
+                            child: IconButton(
+                              onPressed: () {
+                                sendOnDone();
+                              },
+                              icon: const Icon(
                                 Icons.send,
                                 color: Colors.white,
                               ),
@@ -412,9 +291,233 @@ class _CameraPageState extends State<CameraPage> {
                           )
                         ],
                       ),
-              ),
-            ),
-          );
+                    ),
+                  ),
+                )
+              : PopScope(
+                  canPop: true, // Allow back navigation
+                  onPopInvokedWithResult: (bool didPop, Object? result) async {
+                    if (didPop) {
+                      cancelOnDone();
+                      return;
+                    }
+                  },
+                  child: Scaffold(
+                    body: Stack(
+                      children: [
+                        // if (isCurrentlyRecording)
+                        IgnorePointer(
+                          ignoring: !isCurrentlyRecording,
+                          // Disable interaction when not recording
+                          child: OverlayScreen(
+                            isRecording: isCurrentlyRecording,
+                            recordingController: _recordingController,
+                            isValidDuration: isValidDuration,
+                            cameraController: cameraController,
+                            lockObs: lockObs,
+                            isLocked: isLocked,
+                            onError: () {
+                              cancelOnLock();
+                            },
+                            onStart: () {
+                              debugPrint("start recording");
+                              startRecording();
+                            },
+                            onDone: (String path) {
+                              _videoPath = path;
+                              debugPrint("OnDonePath is $_videoPath");
+                              setState(() {
+                                sendOnLock();
+                              });
+                            },
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            height: 60,
+                            color: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 0, horizontal: 10.0),
+                              child: !isLocked
+                                  ? Stack(
+                                      children: [
+                                        AnimatedPositioned(
+                                            key: ValueKey(true),
+                                            duration: const Duration(
+                                                milliseconds: 500),
+                                            bottom: 0,
+                                            top: 0,
+                                            left: isCurrentlyRecording
+                                                ? 0
+                                                : MediaQuery.of(context)
+                                                    .size
+                                                    .width,
+                                            child:
+                                                ValueListenableBuilder<double>(
+                                              valueListenable:
+                                                  _recordingController
+                                                      .recordingDuration,
+                                              builder:
+                                                  (context, duration, child) {
+                                                return Row(
+                                                  children: [
+                                                    SvgPicture.asset(
+                                                      'assets/recording.svg',
+                                                      width: 20,
+                                                      height: 20,
+                                                    ),
+                                                    const SizedBox(
+                                                      width: 10,
+                                                    ),
+                                                    Text(
+                                                      formatDuration(
+                                                          duration.round()),
+                                                      style: const TextStyle(
+                                                        fontSize: 18,
+                                                        color: Colors.red,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            )),
+                                        if (!isLocked) ...[
+                                          AnimatedPositioned(
+                                            duration: const Duration(
+                                                milliseconds: 500),
+                                            left: 0,
+                                            right: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  "assets/delete.svg",
+                                                  width: 25,
+                                                  height: 25,
+                                                ),
+                                                const Text(
+                                                  "Slide to cancel",
+                                                  style: TextStyle(
+                                                      color: Color(0xFF475467)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          top: 0,
+                                          child: ValueListenableBuilder(
+                                            valueListenable: buttonOffsetX2,
+                                            builder: (context, value, child) =>
+                                                Padding(
+                                              padding:
+                                                  const EdgeInsets.all(8.0),
+                                              child: AnimatedScale(
+                                                duration: const Duration(
+                                                    milliseconds: 100),
+                                                scale: isCurrentlyRecording
+                                                    ? scale
+                                                    : 1,
+                                                child: Transform.translate(
+                                                  offset:
+                                                      Offset(value.x, value.y),
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            isCurrentlyRecording
+                                                                ? Colors.red
+                                                                : const Color(
+                                                                    0x2A767680),
+                                                        shape: BoxShape.circle),
+                                                    padding:
+                                                        const EdgeInsets.all(5),
+                                                    child: SvgPicture.asset(
+                                                      "assets/camera_icon.svg",
+                                                      key: ValueKey<bool>(
+                                                          isCurrentlyRecording),
+                                                      width: 30,
+                                                      colorFilter: ColorFilter.mode(
+                                                          isCurrentlyRecording
+                                                              ? Colors.white
+                                                              : const Color(
+                                                                  0xFF858E99),
+                                                          BlendMode.srcIn),
+                                                      height: 30,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          padding: EdgeInsets.zero,
+                                          onPressed: () {
+                                            cancelOnLock();
+                                          },
+                                          icon: SvgPicture.asset(
+                                            "assets/delete.svg",
+                                            width: 25,
+                                            height: 25,
+                                          ),
+                                        ),
+                                        Spacer(),
+                                        ValueListenableBuilder<double>(
+                                          valueListenable: _recordingController
+                                              .recordingDuration,
+                                          builder: (context, duration, child) {
+                                            return Row(
+                                              children: [
+                                                Text(
+                                                  formatDuration(
+                                                      duration.round()),
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                        Spacer(),
+                                        GestureDetector(
+                                          onTap: () {
+                                            _recordingController
+                                                .pauseRecording();
+                                            cameraController.stopRecording();
+                                            sendOnDone();
+                                          },
+                                          child: const CircleAvatar(
+                                            backgroundColor: Color(0xFFFDD400),
+                                            child: Icon(
+                                              Icons.send,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                );
         });
       },
     );
@@ -430,7 +533,6 @@ class _CameraPageState extends State<CameraPage> {
       Overlay.of(context).insert(myOverayEntry!);
     }
     setState(() {});
-    startRecording();
   }
 
   OverlayEntry? myOverayEntry;
@@ -440,55 +542,6 @@ class _CameraPageState extends State<CameraPage> {
     final size = MediaQuery.of(contexts).size;
     // requestPermission();
     // print("object");
-    if (_videoPath != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Circular video player
-              MiniVideoPlayer(
-                show: true,
-                filePath: _videoPath!,
-                autoPlay: true,
-              ),
-            ],
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        backgroundColor: Colors.white,
-        bottomNavigationBar: Container(
-          height: 100,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                  onPressed: () {
-                    cancelOnDone();
-                  },
-                  icon: const Icon(Icons.delete)),
-              Text(
-                "${lastRecord?.round()}s",
-                style: const TextStyle(fontSize: 18, color: Colors.red),
-              ),
-              CircleAvatar(
-                backgroundColor: const Color(0xFFFDD400),
-                child: IconButton(
-                  onPressed: () {
-                    sendOnDone();
-                  },
-                  icon: const Icon(
-                    Icons.send,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
-      );
-    }
 
     // Show the camera interface
     return ChangeNotifierProvider(
@@ -503,9 +556,10 @@ class _CameraPageState extends State<CameraPage> {
               ;
               setState(() {
                 // Dragging up: only allow up movement or return to 0
-                if (buttonOffsetX == 0.0) {
+                if (buttonOffsetX >= -5) {
                   if (details.localOffsetFromOrigin.dy < 0 ||
                       buttonOffsetY < 0) {
+                    buttonOffsetX = 0;
                     buttonOffsetY = details.localOffsetFromOrigin.dy
                         .clamp(-size.height * 0.2, 0.0);
 
@@ -526,9 +580,10 @@ class _CameraPageState extends State<CameraPage> {
                 }
 
                 // Dragging left: only allow left movement or return to 0
-                if (buttonOffsetY == 0.0) {
+                if (buttonOffsetY.abs() <= 5.0) {
                   if (details.localOffsetFromOrigin.dx < 0 ||
                       buttonOffsetX < 0) {
+                    buttonOffsetY = 0;
                     buttonOffsetX = details.localOffsetFromOrigin.dx
                         .clamp(-size.width * 0.5, 0.0);
                     buttonOffsetX2.value =
@@ -550,7 +605,15 @@ class _CameraPageState extends State<CameraPage> {
                 }
               });
             },
-            onLongPressEnd: (_) {
+            onLongPressEnd: (details) {
+              buttonOffsetY =
+                  details.localPosition.dy.clamp(-size.height * 0.2, 0.0);
+              if (buttonOffsetY <= (-size.height * 0.1)) {
+                setState(() {
+                  isLocked = true;
+                });
+                setStatee?.call(() {});
+              }
               //  reset drag mode
               setState(() {
                 buttonOffsetY = 0.0;
@@ -561,6 +624,15 @@ class _CameraPageState extends State<CameraPage> {
                 setStatee?.call(() {});
                 if (!_recordingController.isRecordingValid) {
                   cancelOnLock();
+                } else {
+                  if (!isLocked) {
+                    try {
+                      cameraController.stopRecording();
+                      _recordingController.pauseRecording();
+                    } catch (e) {
+                      debugPrint(e.toString());
+                    }
+                  }
                 }
               });
             },
@@ -596,7 +668,9 @@ class OverlayStateProvider with ChangeNotifier {
   double _scale = 1.0;
 
   double get buttonOffsetX => _buttonOffsetX;
+
   double get buttonOffsetY => _buttonOffsetY;
+
   double get scale => _scale;
 
   void updateOffsets(double offsetX, double offsetY) {

@@ -12,7 +12,7 @@ import 'package:camerawesome/pigeon.dart';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -29,6 +29,7 @@ class OverlayScreen extends StatefulWidget {
       required this.isLocked,
       required this.isRecording,
       required this.lockObs,
+      required this.onStart,
       required this.isValidDuration,
       required this.recordingController});
 
@@ -36,6 +37,7 @@ class OverlayScreen extends StatefulWidget {
   final RecordingController recordingController;
   final Function(String path) onDone;
   final Function() onError;
+  final Function() onStart;
   final bool isValidDuration;
   final bool isLocked;
   final double lockObs;
@@ -51,18 +53,13 @@ class _OverlayScreenState extends State<OverlayScreen> {
   Future<void> _shareVideoFile(String videoPath) async {
     try {
       // Ensure the file exists before attempting to share
-      String? n = await exportCVideo(videoPath);
+      //  String? n = await exportCVideo(videoPath);
       // String? n = await exportCircularVideo(videoPath);
-      final videoFile = File(n ?? "");
+      //final videoFile = File(n ?? "");
 
-      if (await videoFile.exists()) {
-        // Share the video file
-        await Share.shareXFiles(
-          [XFile(videoFile.path)],
-        );
-      } else {
-        print('Error: Video file does not exist at the provided path.');
-      }
+      // Share the video file
+      widget.onDone(videoPath);
+      final result = await Share.shareXFiles([XFile(videoPath)]);
     } catch (e) {
       print('Error sharing video file: $e');
     }
@@ -76,22 +73,26 @@ class _OverlayScreenState extends State<OverlayScreen> {
         buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
   }
 
+  Future<String> _copyMaskToTemporaryFolder() async {
+    final tempDir = await getTemporaryDirectory();
+    final maskPath = '${tempDir.path}/mask.png';
+
+    // Load the mask from assets
+    final byteData = await rootBundle.load('assets/mask.png');
+    final file = File(maskPath);
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+    return maskPath;
+  }
+
   Future<String?> exportCircularVideo(String inputPath) async {
     print('Input Path: $inputPath');
 
     // Get the directory to save the output video
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getDownloadsDirectory();
     var uuid = Uuid();
 
-    final outputPath = '${directory.path}/output_circular_${uuid.v4()}.mp4';
+    final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
 
-    // Optimized single-line FFmpeg command
-    // Replace 'libx264' with 'h264_mediacodec' (Android) or 'h264_videotoolbox' (iOS) if hardware acceleration is enabled
-    // String ffmpegCommand =
-    //     '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v libx264 -b:v 758k -preset veryfast -pix_fmt yuv420p -ac 1 "$outputPath"';
-
-    // Uncomment the following line for Android hardware acceleration
-    // String ffmpegCommand = '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 758k -preset veryfast -pix_fmt yuv420p -ac 1 "$outputPath"';
     String ffmpegCommand = "";
     if (Platform.isIOS) {
       ffmpegCommand =
@@ -100,8 +101,16 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
       // '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v libx264 -b:v 750k -preset veryfast -pix_fmt yuv420p -ac 2 "$outputPath"';
     } else {
+      final maskPath = await _copyMaskToTemporaryFolder();
+
+      // FFmpeg command using the alpha mask
+      //  ffmpeg -y -i input.mp4 -loop 1 -i mask_with_alpha.png -filter_complex "[1:v]alphaextract[alf];[0:v][alf]alphamerge" -c:v qtrle -an output.mov
       ffmpegCommand =
-          '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 758k -preset veryfast -pix_fmt yuv420p -ac 2 "$outputPath"';
+          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
+
+      //
+      // ffmpegCommand =
+      //     '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 750k -pix_fmt yuv420p -ac 1 "$outputPath"';
     }
     // Uncomment the following line for iOS hardware acceleration
 
@@ -126,6 +135,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
         // Set the creation and modification dates to current time
         final now = DateTime.now();
         final outputFile = File(outputPath);
+        widget.onDone(outputPath);
+        _shareVideoFile(outputPath);
 
         // Update the file's modification time
         await outputFile.setLastModified(now);
@@ -171,7 +182,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
           single: (single) async {
             debugPrint('Video saved: ${single.file?.path}');
             final Map<String, dynamic> videoDetails = {};
-            _shareVideoFile(single.file?.path ?? "");
+            exportCircularVideo(single.file?.path ?? "");
             // Step 1: Get basic details using video_player
             final file = File(single.file?.path ?? "");
             final size = file.lengthSync(); // Get file size in bytes
@@ -183,7 +194,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
               setState(() {
                 _videoPath = single.file?.path;
               });
-              widget.onDone(single.file!.path!);
+              //   widget.onDone(single.file!.path!);
             } else {
               debugPrint("Invalid duration ${isRecordingValid}");
               widget.onError();
@@ -211,6 +222,17 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   bool pause = false;
 
+  void init() async {
+    await Future.delayed(Duration(seconds: 2));
+    widget.onStart();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    init();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
@@ -229,58 +251,37 @@ class _OverlayScreenState extends State<OverlayScreen> {
                     Center(
                       child: HoleWidget(
                         radius: context.getWidth() / 2.35,
-                        child: CameraAwesomeBuilder.awesome(
-                          onMediaCaptureEvent: _handleMediaCaptureEvent,
-                          saveConfig: SaveConfig.photoAndVideo(
-                            // mirrorFrontCamera: true,
-                            initialCaptureMode: CaptureMode.video,
-                            photoPathBuilder: (sensors) async {
-                              final Directory extDir =
-                                  await getTemporaryDirectory();
-                              final testDir = await Directory(
-                                '${extDir.path}/camerawesome',
-                              ).create(recursive: true);
-                              if (sensors.length == 1) {
-                                final String filePath =
-                                    '${testDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-                                return SingleCaptureRequest(
-                                    filePath, sensors.first);
-                              }
-                              // Separate pictures taken with front and back camera
-                              return MultipleCaptureRequest(
-                                {
-                                  for (final sensor in sensors)
-                                    sensor:
-                                        '${testDir.path}/${sensor.position == SensorPosition.front ? 'front_' : "back_"}${DateTime.now().millisecondsSinceEpoch}.jpg',
-                                },
-                              );
-                            },
-                            videoOptions: VideoOptions(
-                              enableAudio: true,
-                              quality: VideoRecordingQuality.lowest,
-                              ios: CupertinoVideoOptions(
-                                fps: 30,
-                                codec: CupertinoCodecType.hevc,
-                              ),
-                              android: AndroidVideoOptions(
-                                bitrate: 800000,
-                                fallbackStrategy: QualityFallbackStrategy.lower,
+                        child: AspectRatio(
+                          aspectRatio: 1 / 1.4,
+                          child: CameraAwesomeBuilder.awesome(
+                            onMediaCaptureEvent: _handleMediaCaptureEvent,
+                            saveConfig: SaveConfig.video(
+                              videoOptions: VideoOptions(
+                                enableAudio: true,
+                                quality: VideoRecordingQuality.lowest,
+                                ios: CupertinoVideoOptions(
+                                  fps: 30,
+                                  codec: CupertinoCodecType.hevc,
+                                ),
+                                android: AndroidVideoOptions(
+                                  bitrate: 800000,
+                                  fallbackStrategy:
+                                      QualityFallbackStrategy.lower,
+                                ),
                               ),
                             ),
-                            exifPreferences:
-                                ExifPreferences(saveGPSLocation: false),
+                            sensorConfig: SensorConfig.single(
+                              sensor: Sensor.position(SensorPosition.front),
+                              flashMode: FlashMode.auto,
+                              aspectRatio: CameraAspectRatios.ratio_1_1,
+                              zoom: 0.0,
+                            ),
+                            enablePhysicalButton: true,
+                            previewAlignment: Alignment.center,
+                            previewFit: CameraPreviewFit.fitWidth,
+                            controller:
+                                widget.cameraController, // Pass the controller
                           ),
-                          sensorConfig: SensorConfig.single(
-                            sensor: Sensor.position(SensorPosition.front),
-                            flashMode: FlashMode.auto,
-                            aspectRatio: CameraAspectRatios.ratio_1_1,
-                            zoom: 0.0,
-                          ),
-                          enablePhysicalButton: true,
-                          previewAlignment: Alignment.center,
-                          previewFit: CameraPreviewFit.cover,
-                          controller:
-                              widget.cameraController, // Pass the controller
                         ),
                       ),
                     ),
@@ -432,7 +433,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                 ),
               ),
               const SizedBox(
-                height: 100,
+                height: 50,
               ),
             ],
           ),
@@ -482,5 +483,41 @@ class CircularProgressPainter extends CustomPainter {
   @override
   bool shouldRepaint(CircularProgressPainter oldDelegate) {
     return oldDelegate.progress != progress || oldDelegate.color != color;
+  }
+}
+
+class CircularOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint overlayPaint = Paint()
+      ..color = Colors.black.withOpacity(0.7)
+      ..style = PaintingStyle.fill;
+
+    final Paint transparentPaint = Paint()..blendMode = BlendMode.clear;
+
+    final double circleRadius = size.width * 0.4;
+    final Offset circleCenter = Offset(size.width / 2, size.height / 2);
+
+    // Draw the overlay
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), overlayPaint);
+
+    // Cut out the transparent circle
+    canvas.drawCircle(circleCenter, circleRadius, transparentPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class VideoCroppingPlugin {
+  static const MethodChannel _channel = MethodChannel('video_cropping_plugin');
+
+  static Future<String> cropVideoToCircle(String inputPath) async {
+    final String outputPath = await _channel.invokeMethod('cropVideoToCircle', {
+      'inputPath': inputPath,
+      'outputPath':
+          '/path/to/output.mp4', // Define your output path dynamically
+    });
+    return outputPath;
   }
 }

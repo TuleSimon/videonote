@@ -1,9 +1,10 @@
 import 'package:audionotee/camera_audionote.dart';
-import 'package:audionotee/micheals/hole_widget.dart';
 import 'package:audionotee/micheals/main.dart';
 import 'package:audionotee/micheals/widgets/mini_video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
   runApp(ChangeNotifierProvider(
@@ -21,6 +22,32 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   List<String> recording = [];
   int currentlyTapped = -1;
+
+  @override
+  void initState() {
+    requestStoragePermission();
+    super.initState();
+  }
+
+  Future<bool> requestStoragePermission() async {
+    PermissionStatus status = await Permission.storage.status;
+
+    if (status.isGranted) {
+      return true;
+    } else if (status.isDenied || status.isPermanentlyDenied) {
+      status = await Permission.storage.request();
+      return status.isGranted;
+    }
+    return await requestManageExternalStoragePermission();
+  }
+
+  Future<bool> requestManageExternalStoragePermission() async {
+    if (await Permission.manageExternalStorage.isGranted) {
+      return true;
+    } else {
+      return await Permission.manageExternalStorage.request().isGranted;
+    }
+  }
 
   // This widget is the root of your application.
   @override
@@ -65,48 +92,59 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
-              CameraAwesomeApp(),
+              VideNotebutton(onAddFile: (file) async {
+                recording.add(file);
+                setState(() {});
+              }),
             ],
           ),
         ),
-        body: SingleChildScrollView(
-          child: Container(
-            width: MediaQuery.of(context).size.width,
-            margin: const EdgeInsets.symmetric(horizontal: 10)
-                .copyWith(bottom: 100),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: recording.length,
-              itemBuilder: (context, index) {
-                return AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeIn,
-                  child: SizedBox(
-                    // color: Colors.black,
-                    height: currentlyTapped == index
-                        ? context.getSize().height * 0.6
-                        : context.getSize().height * 0.4,
-                    // width: MediaQuery.of(context).size.width * .8,
-                    child: HoleWidget(
-                      radius: currentlyTapped == index ? 150 : 100,
-                      child: MiniVideoPlayer(
-                        onPlay: () {
-                          currentlyTapped = index;
-                          setState(() {});
-                        },
-                        onPause: () {
-                          currentlyTapped = -1;
-                          setState(() {});
-                        },
-                        filePath: recording[index],
-                        show: false,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+        body: Container(
+          width: MediaQuery.of(context).size.width,
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          child: ListView.builder(
+            shrinkWrap: true,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: recording.length,
+            itemBuilder: (context, index) {
+              ValueNotifier<bool> notifier = ValueNotifier(true);
+              return VisibilityDetector(
+                key: Key(index.toString()),
+                onVisibilityChanged: (info) {
+                  notifier.value = info.visibleFraction > 0;
+                },
+                child: ValueListenableBuilder(
+                    valueListenable: notifier,
+                    builder: (context, value, child) {
+                      return AnimatedSize(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeIn,
+                        child: SizedBox(
+                          width: currentlyTapped == index
+                              ? context.getSize().width * 0.8
+                              : context.getSize().width * 0.5,
+                          height: currentlyTapped == index
+                              ? context.getSize().width * 0.8
+                              : context.getSize().width * 0.5,
+                          child: MiniVideoPlayer(
+                            isVisible: value,
+                            onPlay: () {
+                              currentlyTapped = index;
+                              setState(() {});
+                            },
+                            onPause: () {
+                              currentlyTapped = -1;
+                              setState(() {});
+                            },
+                            autoPlay: true,
+                            filePath: recording[index],
+                            show: false,
+                          ),
+                        ),
+                      );
+                    }),
+              );
+            },
           ),
         ),
       ),

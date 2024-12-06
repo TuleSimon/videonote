@@ -37,7 +37,7 @@ class HoleClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(HoleClipper oldClipper) => false;
+  bool shouldReclip(HoleClipper oldClipper) => oldClipper.radius != radius;
 }
 
 @override
