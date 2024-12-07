@@ -1,15 +1,22 @@
 import 'package:audionotee/camera_audionote.dart';
 import 'package:audionotee/micheals/main.dart';
 import 'package:audionotee/micheals/widgets/mini_video_player.dart';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-void main() {
-  runApp(ChangeNotifierProvider(
-      create: (context) => OverlayStateProvider(),
-      builder: (providercontext, child) => MyApp()));
+List<CameraDescription> _cameras = <CameraDescription>[];
+
+void main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    _cameras = await availableCameras();
+  } on CameraException catch (e) {
+    debugPrint(e.description);
+  }
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
