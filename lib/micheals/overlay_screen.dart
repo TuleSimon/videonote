@@ -1,4 +1,4 @@
-// File: lib/overlay_screen.dart
+
 
 import 'dart:io';
 import 'dart:math';
@@ -10,8 +10,8 @@ import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/widgets/video_processor.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter/return_code.dart';
+import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_full_gpl/return_code.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
@@ -116,9 +116,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     await concatFile.writeAsString(concatContent);
     return concatFile.path;
   }
-
   Future<String?> exportCircularVideo(String inputPath) async {
-
     // Get the directory to save the output video
     final directory = await getDownloadsDirectory();
     var uuid = Uuid();
@@ -130,7 +128,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     if (_videoPaths!.isNotEmpty) {
       final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
       final mergedVideoPath =
-          await concatenateVideos(_videoPaths, tempOutputPath);
+      await concatenateVideos(_videoPaths, tempOutputPath);
 
       if (mergedVideoPath == null) {
         print('Failed to concatenate videos.');
@@ -138,34 +136,17 @@ class _OverlayScreenState extends State<OverlayScreen> {
       }
 
       // Apply the mask to the concatenated video
-      if (Platform.isIOS) {
-        ffmpegCommand =
-            '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
-      } else {
-        ffmpegCommand =
-            '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
-      }
+      ffmpegCommand =
+      '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     } else {
       print('Input Path: $inputPath');
 
-      if (Platform.isIOS) {
-        final maskPath = await _copyMaskToTemporaryFolder();
-        // iOS FFmpeg command using libx264 codec
-        ffmpegCommand =
-            '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
-      } else {
-        final maskPath = await _copyMaskToTemporaryFolder();
-
-        // FFmpeg command using the alpha mask
-        //  ffmpeg -y -i input.mp4 -loop 1 -i mask_with_alpha.png -filter_complex "[1:v]alphaextract[alf];[0:v][alf]alphamerge" -c:v qtrle -an output.mov
-        ffmpegCommand =
-        '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a -c:v h264_mediacodec -c:a aac -pix_fmt yuv420p "$outputPath"';
-
-        //
-        // ffmpegCommand =
-        //     '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 750k -pix_fmt yuv420p -ac 1 "$outputPath"';
-      }
+      // iOS and Android use libx264 with full GPL
+      final maskPath = await _copyMaskToTemporaryFolder();
+      ffmpegCommand =
+      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     }
+
     print('FFmpeg Command: $ffmpegCommand');
 
     // Check if the input file exists
@@ -182,20 +163,12 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
       if (ReturnCode.isSuccess(returnCode)) {
         print('Video exported successfully to $outputPath');
-
-        // Set the creation and modification dates to current time
-        final now = DateTime.now();
-        final outputFile = File(outputPath);
         widget.onCropped(outputPath);
-        //_shareVideoFile(outputPath);
 
-        // Update the file's modification time
+        final outputFile = File(outputPath);
+        final now = DateTime.now();
         await outputFile.setLastModified(now);
         await outputFile.setLastAccessed(DateTime.now());
-        var st = await outputFile.stat();
-
-        // Note: Setting the creation time is not directly supported in Dart.
-        // Consider embedding metadata or using platform-specific code if necessary.
       } else if (ReturnCode.isCancel(returnCode)) {
         print('FFmpeg process was cancelled');
       } else {
@@ -207,15 +180,13 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
     // Check if the output file exists
     final outputFile = File(outputPath);
-    print('Output File Path: $outputFile');
-    print('Does output file exist? ${await outputFile.exists()}');
-
     if (await outputFile.exists()) {
       return outputPath;
     } else {
       return null;
     }
   }
+
 
   Future<String?> exportCVideo(String iP) async {
     VideoProcessor videoProcessor = VideoProcessor();
