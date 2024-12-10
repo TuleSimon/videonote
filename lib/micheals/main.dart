@@ -34,7 +34,7 @@ class VideNotebutton extends StatefulWidget {
   double? padding;
   double? size;
 
-  const VideNotebutton(
+   VideNotebutton(
       {super.key,
         this.padding,this.size,
       required this.onAddFile,
