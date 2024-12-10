@@ -3,18 +3,19 @@ import 'dart:io';
 import 'package:audionotee/micheals/hole_widget.dart';
 import 'package:audionotee/micheals/overlay_screen.dart';
 import 'package:audionotee/micheals/timer_controller.dart';
+import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:video_player/video_player.dart';
 
 class MiniVideoPlayer extends StatefulWidget {
   final String filePath;
   final bool autoPlay;
-  final bool? isVisible;
+  final bool? tapped;
   final bool show;
   final double radius;
   final Function()? onPlay;
   final Function()? onPause;
+
   const MiniVideoPlayer({
     super.key,
     required this.filePath,
@@ -22,7 +23,7 @@ class MiniVideoPlayer extends StatefulWidget {
     required this.show,
     this.onPlay,
     this.radius = 200,
-    this.isVisible,
+    this.tapped,
     this.onPause,
   });
 
@@ -33,7 +34,7 @@ class MiniVideoPlayer extends StatefulWidget {
 }
 
 class _MiniVideoPlayer extends State<MiniVideoPlayer> {
-  VideoPlayerController? _controller;
+  BetterPlayerController? _controller;
   bool _isPlaying = false;
   Duration _duration = const Duration();
   final RecordingController _recordingController = RecordingController();
@@ -47,39 +48,75 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
       _recordingController.restart();
       _recordingController.pauseRecording();
     };
-    _controller = VideoPlayerController.file(File(widget.filePath))
-      ..initialize().then((_) {
-        setState(() {
-          _controller?.setLooping(false);
-        });
-        if (widget.autoPlay) {
-          _controller?.setVolume(0.0);
-          _controller?.play();
-          if (_controller != null) {
-            _duration = (_controller!.value.duration);
-          }
+    _controller = BetterPlayerController(
+      BetterPlayerConfiguration(
+        controlsConfiguration: const BetterPlayerControlsConfiguration(
+          showControls: false,
+          showControlsOnInitialize: false
+        ),
+          autoPlay: true,
+          aspectRatio: 6/19,
+          fit:BoxFit.cover ,
+          playerVisibilityChangedBehavior: (visibility) {
+            onVisibilityChanged(visibility);
+          },
+          eventListener: (event) {
+            if (event.betterPlayerEventType ==
+                BetterPlayerEventType.initialized) {
+              setState(() {
+                _duration =
+                    _controller?.videoPlayerController?.value.duration ??
+                        const Duration();
+                _controller?.videoPlayerController?.addListener(playListener);
+                _recordingController.startRecording(
+                    maxT: (_duration.inMilliseconds / 1000).toDouble());
+              });
+            }
+            if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
+              setState(() {
+                _isPlaying = false;
+              });
+            }
+            if (event.betterPlayerEventType == BetterPlayerEventType.play) {
+              setState(() {
+                _isPlaying = true;
+              });
+            }
+          }),
+      betterPlayerDataSource: BetterPlayerDataSource(
+          BetterPlayerDataSourceType.file, widget.filePath),
+    )..setMixWithOthers(true);
+  }
 
-          _recordingController.startRecording(
-              maxT: (_duration.inMilliseconds / 1000).toDouble());
-
-          setState(() {
-            _isPlaying = true;
-          });
-        }
-        _controller?.addListener(playListener);
-      });
+  void onVisibilityChanged(double visibleFraction) async {
+    bool isPlaying = ( _controller!.isPlaying()) == true;
+    bool initialized = _controller!.isVideoInitialized()==true;
+    if (visibleFraction >= 0.5) {
+      if (widget.autoPlay && initialized && !isPlaying ) {
+        _controller?.setVolume(0.0);
+        _controller?.seekTo(const Duration(seconds: 0));
+        _controller!.play();
+      }
+    } else {
+      if (initialized && isPlaying ) {
+        _controller!.pause();
+      }
+    }
   }
 
   void playListener() {
     setState(() {
-      _isPlaying = _controller?.value.isPlaying ?? false;
-      if (tapped) {
+      _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
         if (_isPlaying) {
-          widget.onPlay?.call();
+          if( widget.tapped!=null && widget.tapped!=true){
+            widget.onPlay?.call();
+          }
         } else {
-          widget.onPause?.call();
+          setState(() {
+
+          });
         }
-      }
+
     });
   }
 
@@ -90,72 +127,59 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
   }
 
   void _togglePlayPause() {
-    if (_controller == null || !_controller!.value.isInitialized) return;
+    if (_controller == null ||
+        _controller?.videoPlayerController?.value.initialized == false) return;
 
     setState(() {
-      if (!tapped) {
+      if (widget.tapped!=true && widget.tapped!=null) {
         _controller?.setVolume(1.0);
-        tapped = true;
+        _controller?.seekTo(const Duration(seconds: 0));
+        _controller?.play();
         return;
       }
-      tapped = true;
 
-      if (_controller!.value.isPlaying) {
+      if (_controller!.videoPlayerController!.value.isPlaying) {
         _controller?.pause();
         _recordingController.pauseRecording();
-        _isPlaying = false;
       } else {
+        debugPrint("here");
         _controller?.setVolume(1.0);
-        _controller?.play();
-        _recordingController.playRecording();
-        _isPlaying = true;
+
+        final isVideoEnded = _controller?.videoPlayerController?.value.position ==
+            _controller?.videoPlayerController?.value.duration;
+        if( widget.tapped!=null && widget.tapped!=true) {
+          _controller?.seekTo(const Duration(seconds: 0));
+        }
+        else if (isVideoEnded) {
+          // Restart the video if it has ended
+          _controller?.seekTo(const Duration(seconds: 0));
+          _controller?.play();
+          _recordingController.restart();
+          _recordingController.playRecording();
+          _isPlaying = true;
+        } else {
+          _controller?.play();
+          _recordingController.playRecording();
+        }
+
       }
     });
   }
 
-  @override
-  void didUpdateWidget(MiniVideoPlayer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isVisible != null && widget.isVisible != oldWidget.isVisible) {
-      if (widget.isVisible == true && _controller?.value.isPlaying != true) {
-        _controller?.setVolume(0.0);
-        _controller?.seekTo(const Duration(seconds: 0));
-        _controller?.play();
-        setState(() {
-          tapped = false;
-        });
-      }
-    }
-  }
 
-  bool tapped = false;
+
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_controller!.value.isInitialized) {
-      return HoleWidget(
-          child: Container(
-              clipBehavior: Clip.hardEdge,
-              decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: Colors.black),
-              child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..scale(
-                      -1.0, // Flip horizontally
-                      1.0, // Flip vertically
-                    ),
-                  child: FittedBox(
-                      fit: BoxFit.contain,
-                      alignment: Alignment.center,
-                      child: SizedBox()))));
+    if (_controller == null || _controller?.isVideoInitialized() == false) {
+      return const FractionallySizedBox( widthFactor:0.5, heightFactor: 0.5,child: CircularProgressIndicator(
+        color: Colors.amber,
+      ));
     }
 
     return GestureDetector(
       onTap: () {
-        if (_isPlaying) {
           _togglePlayPause();
-        }
       },
       child: Stack(
         alignment: Alignment.center,
@@ -179,9 +203,13 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                   fit: BoxFit.contain,
                   alignment: Alignment.center,
                   child: SizedBox(
-                    width: _controller?.value.size.width ?? 0,
-                    height: _controller?.value.size.height ?? 0,
-                    child: VideoPlayer(_controller!),
+                    width: _controller
+                            ?.videoPlayerController?.value?.size?.width ??
+                        0,
+                    height: _controller
+                            ?.videoPlayerController?.value?.size?.height ??
+                        0,
+                    child: BetterPlayer(controller: _controller!),
                   ),
                 ),
               ),
@@ -223,7 +251,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 ),
               ),
             ),
-          if (!tapped && !widget.show)
+          if (_controller!.videoPlayerController!.value!.volume<=0.1 && !widget.show)
             Positioned(
               bottom: 30,
               left: 0,

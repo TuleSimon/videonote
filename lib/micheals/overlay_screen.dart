@@ -258,7 +258,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                             saveConfig: SaveConfig.video(
                               videoOptions: VideoOptions(
                                 enableAudio: true,
-                                quality: VideoRecordingQuality.lowest,
+                                quality: VideoRecordingQuality.sd,
                                 ios: CupertinoVideoOptions(
                                   fps: 30,
                                   codec: CupertinoCodecType.hevc,

@@ -107,43 +107,33 @@ class _MyAppState extends State<MyApp> {
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: recording.length,
             itemBuilder: (context, index) {
-              ValueNotifier<bool> notifier = ValueNotifier(true);
-              return VisibilityDetector(
-                key: Key(index.toString()),
-                onVisibilityChanged: (info) {
-                  notifier.value = info.visibleFraction > 0;
-                },
-                child: ValueListenableBuilder(
-                    valueListenable: notifier,
-                    builder: (context, value, child) {
-                      return AnimatedSize(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeIn,
-                        child: SizedBox(
-                          width: currentlyTapped == index
-                              ? context.getSize().width * 0.8
-                              : context.getSize().width * 0.5,
-                          height: currentlyTapped == index
-                              ? context.getSize().width * 0.8
-                              : context.getSize().width * 0.5,
-                          child: MiniVideoPlayer(
-                            isVisible: value,
-                            onPlay: () {
-                              currentlyTapped = index;
-                              setState(() {});
-                            },
-                            onPause: () {
-                              currentlyTapped = -1;
-                              setState(() {});
-                            },
-                            autoPlay: true,
-                            filePath: recording[index],
-                            show: false,
-                          ),
+              return  AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeIn,
+                      child: SizedBox(
+                        width: currentlyTapped == index
+                            ? context.getSize().width * 0.8
+                            : context.getSize().width * 0.5,
+                        height: currentlyTapped == index
+                            ? context.getSize().width * 0.8
+                            : context.getSize().width * 0.5,
+                        child: MiniVideoPlayer(
+                          tapped: currentlyTapped==index,
+                          onPlay: () {
+                            currentlyTapped = index;
+                            setState(() {});
+                          },
+                          onPause: () {
+                            currentlyTapped = -1;
+                            setState(() {});
+                          },
+                          autoPlay: true,
+                          filePath: recording[index],
+                          show: false,
                         ),
-                      );
-                    }),
-              );
+                      ),
+                    );
+
             },
           ),
         ),
