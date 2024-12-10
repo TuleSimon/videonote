@@ -85,7 +85,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     final maskPath = '${tempDir.path}/mask.png';
 
     // Load the mask from assets
-    final byteData = await rootBundle.load('assets/mask.png');
+    final byteData = await rootBundle.load('lib/assets/mask.png');
     final file = File(maskPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return maskPath;
@@ -360,7 +360,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                             ? Icons.flash_on
                                             : Icons.flash_auto)
                                         : SvgPicture.asset(
-                                            "assets/flash_icon.svg",
+                                            "lib/assets/flash_icon.svg",
                                             width: 25,
                                           ),
                               )),
@@ -380,7 +380,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                             child: CircleAvatar(
                               backgroundColor: Colors.white,
                               child: SvgPicture.asset(
-                                "assets/camera_switch_icon.svg",
+                                "lib/assets/camera_switch_icon.svg",
                                 width: 25,
                               ),
                             )),
@@ -405,7 +405,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(3.0),
                                       child: SvgPicture.asset(
-                                        "assets/pause.svg",
+                                        "lib/assets/pause.svg",
                                         width: 25,
                                         height: 25,
                                       ),

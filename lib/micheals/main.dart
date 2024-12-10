@@ -36,9 +36,10 @@ class VideNotebutton extends StatefulWidget {
   double? size;
   Widget child;
 
-   VideNotebutton(
+  VideNotebutton(
       {super.key,
-        this.padding,this.size,
+      this.padding,
+      this.size,
       required this.onAddFile,
       required this.onCropped,
       required this.child,
@@ -76,16 +77,12 @@ class _CameraPageState extends State<VideNotebutton> {
     // Stop the recording and update the UI
     cameraController.stopRecording();
     setState(() {
-      sendRecording = false;
       isCurrentlyRecording = false;
       isValidDuration = true;
     });
     setStatee?.call(() {});
     lastRecord = _recordingController.stopRecording();
-
-    await Future.delayed(Duration(milliseconds: 500), () {
-      setState(() {});
-    });
+    setState(() {});
     setStatee?.call(() {});
   }
 
@@ -386,7 +383,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                 return Row(
                                                   children: [
                                                     SvgPicture.asset(
-                                                      'assets/recording.svg',
+                                                      'lib/assets/recording.svg',
                                                       width: 20,
                                                       height: 20,
                                                     ),
@@ -422,7 +419,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                             .center,
                                                     children: [
                                                       SvgPicture.asset(
-                                                        "assets/delete.svg",
+                                                        "lib/assets/delete.svg",
                                                         width: 25,
                                                         height: 25,
                                                       ),
@@ -456,30 +453,174 @@ class _CameraPageState extends State<VideNotebutton> {
                                                 child: Transform.translate(
                                                   offset:
                                                       Offset(value.x, value.y),
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                        color:
-                                                            isCurrentlyRecording
+                                                  child: GestureDetector(
+                                                      onVerticalDragEnd:
+                                                          (details) {
+                                                        buttonOffsetY = details
+                                                            .localPosition.dy
+                                                            .clamp(
+                                                                -size.height *
+                                                                    0.2,
+                                                                0.0);
+                                                        if (buttonOffsetY <=
+                                                            (-size.height *
+                                                                0.1)) {
+                                                          setState(() {
+                                                            isLocked = true;
+                                                          });
+                                                          setStatee
+                                                              ?.call(() {});
+                                                        }
+                                                        //  reset drag mode
+                                                        setState(() {
+                                                          buttonOffsetY = 0.0;
+                                                          buttonOffsetX = 0.0;
+                                                          buttonOffsetX2.value =
+                                                              DragValue(
+                                                                  x: buttonOffsetX,
+                                                                  y: buttonOffsetY);
+                                                          scale = defScale;
+                                                          setStatee
+                                                              ?.call(() {});
+                                                          if (!_recordingController
+                                                              .isRecordingValid) {
+                                                            cancelOnLock();
+                                                          } else {
+                                                            if (!isLocked) {
+                                                              try {
+                                                                cameraController
+                                                                    .stopRecording();
+                                                                _recordingController
+                                                                    .pauseRecording();
+                                                              } catch (e) {
+                                                                debugPrint(e
+                                                                    .toString());
+                                                              }
+                                                            }
+                                                          }
+                                                        });
+                                                      },
+                                                      onVerticalDragUpdate:
+                                                          (details) {
+                                                        debugPrint(
+                                                            "moving ${details.delta.dy}");
+                                                        setState(() {
+                                                          // Dragging up: only allow up movement or return to 0
+                                                          if (buttonOffsetX >=
+                                                              -5) {
+                                                            if (details.delta
+                                                                        .dy <
+                                                                    0 ||
+                                                                buttonOffsetY <
+                                                                    0) {
+                                                              buttonOffsetX = 0;
+                                                              buttonOffsetY = details
+                                                                  .delta.dy
+                                                                  .clamp(
+                                                                      -size.height *
+                                                                          0.2,
+                                                                      0.0);
+
+                                                              debugPrint("Y: " +
+                                                                  buttonOffsetY
+                                                                      .toString());
+                                                              debugPrint("Height " +
+                                                                  (size.height *
+                                                                          0.2)
+                                                                      .toString());
+
+                                                              // Scale decreases as the button moves up and increases as it moves down
+                                                              scale = (defScale -
+                                                                      (buttonOffsetY
+                                                                              .abs() /
+                                                                          (size.height *
+                                                                              0.2)))
+                                                                  .abs();
+                                                              scale = scale.clamp(
+                                                                  0.3,
+                                                                  defScale); // Clamp scale between 1.0 and 1.5
+
+                                                              buttonOffsetX2
+                                                                      .value =
+                                                                  DragValue(
+                                                                      x: buttonOffsetX,
+                                                                      y: buttonOffsetY);
+                                                            }
+                                                            setStatee
+                                                                ?.call(() {});
+                                                          }
+
+                                                          // Dragging left: only allow left movement or return to 0
+                                                          if (buttonOffsetY
+                                                                  .abs() <=
+                                                              5.0) {
+                                                            if (details.delta
+                                                                        .dx <
+                                                                    0 ||
+                                                                buttonOffsetX <
+                                                                    0) {
+                                                              buttonOffsetY = 0;
+                                                              buttonOffsetX = details
+                                                                  .delta.dx
+                                                                  .clamp(
+                                                                      -size.width *
+                                                                          0.5,
+                                                                      0.0);
+                                                              buttonOffsetX2
+                                                                      .value =
+                                                                  DragValue(
+                                                                      x: buttonOffsetX,
+                                                                      y: buttonOffsetY);
+                                                            }
+                                                            setStatee
+                                                                ?.call(() {});
+                                                          }
+
+                                                          // Trigger actions based on drag thresholds
+                                                          if (buttonOffsetY <=
+                                                              (-size.height *
+                                                                  0.1)) {
+                                                            setState(() {
+                                                              isLocked = true;
+                                                            });
+                                                            setStatee
+                                                                ?.call(() {});
+                                                          }
+                                                          if (buttonOffsetX
+                                                                  .abs() >=
+                                                              size.width *
+                                                                  0.3) {
+                                                            stopRecording();
+                                                            setStatee
+                                                                ?.call(() {});
+                                                          }
+                                                        });
+                                                      },
+                                                      child: Container(
+                                                        decoration: BoxDecoration(
+                                                            color: isCurrentlyRecording
                                                                 ? Colors.red
                                                                 : const Color(
                                                                     0x2A767680),
-                                                        shape: BoxShape.circle),
-                                                    padding:
-                                                        const EdgeInsets.all(5),
-                                                    child: SvgPicture.asset(
-                                                      "assets/camera_icon.svg",
-                                                      key: ValueKey<bool>(
-                                                          isCurrentlyRecording),
-                                                      width: 30,
-                                                      colorFilter: ColorFilter.mode(
-                                                          isCurrentlyRecording
-                                                              ? Colors.white
-                                                              : const Color(
-                                                                  0xFF858E99),
-                                                          BlendMode.srcIn),
-                                                      height: 30,
-                                                    ),
-                                                  ),
+                                                            shape: BoxShape
+                                                                .circle),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(5),
+                                                        child: SvgPicture.asset(
+                                                          "lib/assets/camera_icon.svg",
+                                                          key: ValueKey<bool>(
+                                                              isCurrentlyRecording),
+                                                          width: 30,
+                                                          colorFilter: ColorFilter.mode(
+                                                              isCurrentlyRecording
+                                                                  ? Colors.white
+                                                                  : const Color(
+                                                                      0xFF858E99),
+                                                              BlendMode.srcIn),
+                                                          height: 30,
+                                                        ),
+                                                      )),
                                                 ),
                                               ),
                                             ),
@@ -497,7 +638,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                             cancelOnLock();
                                           },
                                           icon: SvgPicture.asset(
-                                            "assets/delete.svg",
+                                            "lib/assets/delete.svg",
                                             width: 25,
                                             height: 25,
                                           ),
@@ -553,8 +694,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   StreamController<double> postionStream = StreamController<double>();
 
-  void _showOverlayWithGesture(
-      BuildContext context) {
+  void _showOverlayWithGesture(BuildContext context) {
     if (myOverayEntry == null) {
       myOverayEntry = getMyOverlayEntry(
           contextt: context, x: buttonOffsetX, y: buttonOffsetY);
@@ -566,6 +706,7 @@ class _CameraPageState extends State<VideNotebutton> {
   OverlayEntry? myOverayEntry;
 
   bool _hasPermission = false;
+
   Future<void> _checkPermission() async {
     final hasPermission = await requestCameraPermission();
     setState(() {
@@ -574,18 +715,24 @@ class _CameraPageState extends State<VideNotebutton> {
   }
 
   Future<bool> requestCameraPermission() async {
-    if (await Permission.camera.isGranted && await  Permission.audio.isGranted) {
+    debugPrint((await Permission.camera.status).toString());
+    debugPrint((await Permission.microphone.status).toString());
+    if (await Permission.camera.isGranted &&
+        await Permission.microphone.isGranted) {
+      debugPrint("here");
+
       WidgetsBinding.instance.addPostFrameCallback((res) {
         Vibration.vibrate(duration: 500, amplitude: 255);
         _showOverlayWithGesture(context);
       });
       return true;
+    } else {
+      debugPrint("here2");
+
+      final status2 = await Permission.microphone.request();
+
+      return status2.isGranted;
     }
-
-    final status = await Permission.camera.request();
-    final status2 = await Permission.audio.request();
-
-    return status.isGranted && status2.isGranted;
   }
 
   @override
@@ -595,101 +742,141 @@ class _CameraPageState extends State<VideNotebutton> {
     // print("object");
 
     // Show the camera interface
-    return GestureDetector(
-        onLongPressStart: (details) async {
+    return WillPopScope(
+        onWillPop: () async {
+          debugPrint("pop here");
+          if (isCurrentlyRecording) {
+            cameraController.stopRecording();
+            _recordingController.stopRecording();
+            cancelOnDone();
+            return false;
+          }
+          return true; // Allow back button to work normally
+        },
+        child: GestureDetector(
+          onVerticalDragStart: (details) {
+            debugPrint("Vertical drag started at ${details.globalPosition}");
+          },
+          onVerticalDragUpdate: (details) async {
+            // Handle vertical drag to start recording
+            // Detect upward drag
+            buttonOffsetY += details.delta.dy; // Update button's offset
+            buttonOffsetY = buttonOffsetY.clamp(
+                -size.height * 0.2, 0.0); // Clamp to a max value
+            if (buttonOffsetY <= -size.height * 0.15) {
+              final isGranted = await requestCameraPermission();
+              if (isGranted) {
+                setState(() {
+                  isLocked = true; // Lock the recording once triggered
+                });
+                Vibration.vibrate(duration: 500, amplitude: 255);
+                _showOverlayWithGesture(context);
+              }
+            }
+            setState(() {});
+          },
+          onVerticalDragEnd: (details) {
+            setState(() {
+              buttonOffsetY = 0.0;
+              buttonOffsetX = 0.0;
+              buttonOffsetX2.value =
+                  DragValue(x: buttonOffsetX, y: buttonOffsetY);
+
+              setStatee?.call(() {});
+            });
+          },
+          onLongPressStart: (details) async {
             final isGranted = await requestCameraPermission();
-            if(isGranted){
+            if (isGranted) {
               Vibration.vibrate(duration: 500, amplitude: 255);
               _showOverlayWithGesture(context);
             }
-        },
-        onLongPressMoveUpdate: (details) {
-          debugPrint("moving ${details.offsetFromOrigin.dy}");
-          ;
-          setState(() {
-            // Dragging up: only allow up movement or return to 0
-            if (buttonOffsetX >= -5) {
-              if (details.localOffsetFromOrigin.dy < 0 || buttonOffsetY < 0) {
-                buttonOffsetX = 0;
-                buttonOffsetY = details.localOffsetFromOrigin.dy
-                    .clamp(-size.height * 0.2, 0.0);
+          },
+          onLongPressMoveUpdate: (details) {
+            debugPrint("moving ${details.offsetFromOrigin.dy}");
+            setState(() {
+              // Dragging up: only allow up movement or return to 0
+              if (buttonOffsetX >= -5) {
+                if (details.localOffsetFromOrigin.dy < 0 || buttonOffsetY < 0) {
+                  buttonOffsetX = 0;
+                  buttonOffsetY = details.localOffsetFromOrigin.dy
+                      .clamp(-size.height * 0.2, 0.0);
 
-                debugPrint("Y: " + buttonOffsetY.toString());
-                debugPrint("Height " + (size.height * 0.2).toString());
+                  debugPrint("Y: " + buttonOffsetY.toString());
+                  debugPrint("Height " + (size.height * 0.2).toString());
 
-                // Scale decreases as the button moves up and increases as it moves down
-                scale = (defScale - (buttonOffsetY.abs() / (size.height * 0.2)))
-                    .abs();
-                scale = scale.clamp(
-                    0.3, defScale); // Clamp scale between 1.0 and 1.5
+                  // Scale decreases as the button moves up and increases as it moves down
+                  scale =
+                      (defScale - (buttonOffsetY.abs() / (size.height * 0.2)))
+                          .abs();
+                  scale = scale.clamp(
+                      0.3, defScale); // Clamp scale between 1.0 and 1.5
 
-                buttonOffsetX2.value =
-                    DragValue(x: buttonOffsetX, y: buttonOffsetY);
+                  buttonOffsetX2.value =
+                      DragValue(x: buttonOffsetX, y: buttonOffsetY);
+                }
+                setStatee?.call(() {});
               }
-              setStatee?.call(() {});
-            }
 
-            // Dragging left: only allow left movement or return to 0
-            if (buttonOffsetY.abs() <= 5.0) {
-              if (details.localOffsetFromOrigin.dx < 0 || buttonOffsetX < 0) {
-                buttonOffsetY = 0;
-                buttonOffsetX = details.localOffsetFromOrigin.dx
-                    .clamp(-size.width * 0.5, 0.0);
-                buttonOffsetX2.value =
-                    DragValue(x: buttonOffsetX, y: buttonOffsetY);
+              // Dragging left: only allow left movement or return to 0
+              if (buttonOffsetY.abs() <= 5.0) {
+                if (details.localOffsetFromOrigin.dx < 0 || buttonOffsetX < 0) {
+                  buttonOffsetY = 0;
+                  buttonOffsetX = details.localOffsetFromOrigin.dx
+                      .clamp(-size.width * 0.5, 0.0);
+                  buttonOffsetX2.value =
+                      DragValue(x: buttonOffsetX, y: buttonOffsetY);
+                }
+                setStatee?.call(() {});
               }
-              setStatee?.call(() {});
-            }
 
-            // Trigger actions based on drag thresholds
+              // Trigger actions based on drag thresholds
+              if (buttonOffsetY <= (-size.height * 0.1)) {
+                setState(() {
+                  isLocked = true;
+                });
+                setStatee?.call(() {});
+              }
+              if (buttonOffsetX.abs() >= size.width * 0.3) {
+                stopRecording();
+                setStatee?.call(() {});
+              }
+            });
+          },
+          onLongPressEnd: (details) {
             if (buttonOffsetY <= (-size.height * 0.1)) {
               setState(() {
                 isLocked = true;
               });
               setStatee?.call(() {});
             }
-            if (buttonOffsetX.abs() >= size.width * 0.3) {
-              stopRecording();
-              setStatee?.call(() {});
-            }
-          });
-        },
-        onLongPressEnd: (details) {
-          buttonOffsetY =
-              details.localPosition.dy.clamp(-size.height * 0.2, 0.0);
-          if (buttonOffsetY <= (-size.height * 0.1)) {
+            //  reset drag mode
             setState(() {
-              isLocked = true;
-            });
-            setStatee?.call(() {});
-          }
-          //  reset drag mode
-          setState(() {
-            buttonOffsetY = 0.0;
-            buttonOffsetX = 0.0;
-            buttonOffsetX2.value =
-                DragValue(x: buttonOffsetX, y: buttonOffsetY);
-            scale = defScale;
-            setStatee?.call(() {});
-            if (!_recordingController.isRecordingValid) {
-              cancelOnLock();
-            } else {
-              if (!isLocked) {
-                try {
-                  cameraController.stopRecording();
-                  _recordingController.pauseRecording();
-                } catch (e) {
-                  debugPrint(e.toString());
+              buttonOffsetY = 0.0;
+              buttonOffsetX = 0.0;
+              buttonOffsetX2.value =
+                  DragValue(x: buttonOffsetX, y: buttonOffsetY);
+              scale = defScale;
+              setStatee?.call(() {});
+              if (!_recordingController.isRecordingValid) {
+                cancelOnLock();
+              } else {
+                if (!isLocked) {
+                  try {
+                    cameraController.stopRecording();
+                    _recordingController.pauseRecording();
+                  } catch (e) {
+                    debugPrint(e.toString());
+                  }
                 }
               }
-            }
-          });
-        },
-        onTap: () {
-          widget.onTap();
-        },
-        child: widget.child,
-        );
+            });
+          },
+          onTap: () {
+            widget.onTap();
+          },
+          child: widget.child,
+        ));
   }
 }
 
