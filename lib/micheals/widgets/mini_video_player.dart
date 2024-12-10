@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:audionotee/micheals/hole_widget.dart';
 import 'package:audionotee/micheals/overlay_screen.dart';
 import 'package:audionotee/micheals/timer_controller.dart';
 import 'package:better_player/better_player.dart';
@@ -107,15 +104,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
   void playListener() {
     setState(() {
       _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
-        if (_isPlaying) {
-          if( widget.tapped!=null && widget.tapped!=true){
-            widget.onPlay?.call();
-          }
-        } else {
-          setState(() {
-
-          });
-        }
 
     });
   }
@@ -135,6 +123,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
         _controller?.setVolume(1.0);
         _controller?.seekTo(const Duration(seconds: 0));
         _controller?.play();
+        widget.onPlay?.call();
         return;
       }
 
@@ -143,7 +132,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
         _recordingController.pauseRecording();
       } else {
         debugPrint("here");
-        _controller?.setVolume(1.0);
+
 
         final isVideoEnded = _controller?.videoPlayerController?.value.position ==
             _controller?.videoPlayerController?.value.duration;
@@ -166,7 +155,14 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
     });
   }
 
+@override
+  void didUpdateWidget(covariant MiniVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+  if(widget.tapped!=null && widget.tapped!=true){
+    _controller?.setVolume(0.0);
+  }
 
+  }
 
 
   @override

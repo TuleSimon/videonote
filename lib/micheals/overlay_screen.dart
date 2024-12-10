@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:audionotee/camera_audionote.dart';
+import 'package:audionotee/micheals/main.dart';
 import 'package:audionotee/micheals/timer_controller.dart';
 import 'package:audionotee/micheals/widgets/video_processor.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
@@ -25,6 +26,8 @@ class OverlayScreen extends StatefulWidget {
       {super.key,
       required this.cameraController,
       required this.onDone,
+      required this.offset,
+      required this.onCropped,
       required this.onError,
       required this.isLocked,
       required this.isRecording,
@@ -36,10 +39,12 @@ class OverlayScreen extends StatefulWidget {
   final CameraController cameraController;
   final RecordingController recordingController;
   final Function(String path) onDone;
+  final Function(String path) onCropped;
   final Function() onError;
   final Function() onStart;
   final bool isValidDuration;
   final bool isLocked;
+  final DragValue offset;
   final double lockObs;
   final bool isRecording;
 
@@ -60,8 +65,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
       //final videoFile = File(n ?? "");
 
       // Share the video file
-      widget.onDone(videoPath);
-      final result = await Share.shareXFiles([XFile(videoPath)]);
+   //   widget.onDone(videoPath);
+     // final result = await Share.shareXFiles([XFile(videoPath)]);
     } catch (e) {
       print('Error sharing video file: $e');
     }
@@ -113,6 +118,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   }
 
   Future<String?> exportCircularVideo(String inputPath) async {
+
     // Get the directory to save the output video
     final directory = await getDownloadsDirectory();
     var uuid = Uuid();
@@ -153,7 +159,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
         // FFmpeg command using the alpha mask
         //  ffmpeg -y -i input.mp4 -loop 1 -i mask_with_alpha.png -filter_complex "[1:v]alphaextract[alf];[0:v][alf]alphamerge" -c:v qtrle -an output.mov
         ffmpegCommand =
-            '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
+        '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a -c:v h264_mediacodec -c:a aac -pix_fmt yuv420p "$outputPath"';
 
         //
         // ffmpegCommand =
@@ -180,8 +186,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
         // Set the creation and modification dates to current time
         final now = DateTime.now();
         final outputFile = File(outputPath);
-        widget.onDone(outputPath);
-        _shareVideoFile(outputPath);
+        widget.onCropped(outputPath);
+        //_shareVideoFile(outputPath);
 
         // Update the file's modification time
         await outputFile.setLastModified(now);
@@ -231,7 +237,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
             }
             debugPrint('Video saved: ${single.file?.path}');
             final Map<String, dynamic> videoDetails = {};
-            exportCircularVideo(single.file?.path ?? "");
             // Step 1: Get basic details using video_player
             final file = File(single.file?.path ?? "");
             final size = file.lengthSync(); // Get file size in bytes
@@ -240,6 +245,9 @@ class _OverlayScreenState extends State<OverlayScreen> {
             print(videoDetails);
             if (widget.recordingController.isRecordingValid) {
               debugPrint("Reach here duration");
+              widget.onDone(file.path);
+              exportCircularVideo(single.file?.path ?? "");
+
               setState(() {
                 _videoPath = single.file?.path;
               });
@@ -443,11 +451,11 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 ),
                                 transform: Matrix4.translationValues(
                                   0, // No horizontal movement
-                                  widget.isRecording ? 0 : 200,
+                                  widget.isRecording ? widget.offset.y.abs()/2 : 200,
                                   // Move vertically (200 units down when collapsed)
                                   0,
                                 ),
-                                height: 94 + (widget.lockObs * 20),
+                                height: 94,
                                 width: 45,
                                 child: Column(
                                   children: [

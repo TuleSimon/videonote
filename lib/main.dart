@@ -102,7 +102,14 @@ class _MyAppState extends State<MyApp> {
               VideNotebutton(onAddFile: (file) async {
                 recording.add(file);
                 setState(() {});
-              }),
+              },
+          onCropped: (file) async {
+            recording.add(file);
+            setState(() {});
+          },
+        onTap: () async {
+
+        }),
             ],
           ),
         ),
