@@ -662,7 +662,7 @@ class _CameraPageState extends State<VideNotebutton> {
         child: Container(
               decoration: const BoxDecoration(
                   color: Color(0x2A767680), shape: BoxShape.circle),
-              padding: const EdgeInsets.all(widget.padding??5),
+              padding:  EdgeInsets.all(widget.padding??5),
               child: SvgPicture.asset(
                 "assets/camera_icon.svg",
                 key: ValueKey<bool>(isCurrentlyRecording),
