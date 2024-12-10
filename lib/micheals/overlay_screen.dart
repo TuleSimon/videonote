@@ -50,6 +50,8 @@ class OverlayScreen extends StatefulWidget {
 class _OverlayScreenState extends State<OverlayScreen> {
   bool isRecordingValid = false;
   String? _videoPath; // To store the path of the recorded video
+  final List<String>? _videoPaths =
+      List.empty(growable: true); // To store the path of the recorded video
   Future<void> _shareVideoFile(String videoPath) async {
     try {
       // Ensure the file exists before attempting to share
@@ -84,37 +86,80 @@ class _OverlayScreenState extends State<OverlayScreen> {
     return maskPath;
   }
 
-  Future<String?> exportCircularVideo(String inputPath) async {
-    print('Input Path: $inputPath');
+  Future<String?> concatenateVideos(
+      List<String> videoPaths, String tempOutputPath) async {
+    // Create a temporary text file to list all video files
+    final concatFilePath = await _createConcatFile(videoPaths);
+    // FFmpeg command to concatenate videos
+    String concatCommand =
+        '-f concat -safe 0 -i "$concatFilePath" -c copy "$tempOutputPath"';
+    // Execute the FFmpeg command
+    final concatResult = await FFmpegKit.execute(concatCommand);
+    final returnCode = await concatResult.getReturnCode();
+    if (returnCode!.isValueSuccess()) {
+      return tempOutputPath;
+    } else {
+      print('Error concatenating videos.');
+      return null;
+    }
+  }
 
+  Future<String> _createConcatFile(List<String> videoPaths) async {
+    final directory = await getTemporaryDirectory();
+    final concatFile = File('${directory.path}/concat.txt');
+    final concatContent = videoPaths.map((path) => "file '$path'").join('\n');
+    await concatFile.writeAsString(concatContent);
+    return concatFile.path;
+  }
+
+  Future<String?> exportCircularVideo(String inputPath) async {
     // Get the directory to save the output video
     final directory = await getDownloadsDirectory();
     var uuid = Uuid();
 
     final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
-
+    final maskPath = await _copyMaskToTemporaryFolder();
     String ffmpegCommand = "";
-    if (Platform.isIOS) {
-      ffmpegCommand =
-          // '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_videotoolbox -b:v 750k -preset ultrafast -pix_fmt yuv420p -ac 2 "$outputPath"';
-          """-i $inputPath -vf "crop='min(iw,ih)':'min(iw,ih)',scale=480:480,geq=r='if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))':g='if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))':b='if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))'" -c:v h264_videotoolbox -b:v 750k -preset ultrafast -pix_fmt yuv420p -ac 2 -threads 4 $outputPath""";
 
-      // '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v libx264 -b:v 750k -preset veryfast -pix_fmt yuv420p -ac 2 "$outputPath"';
+    if (_videoPaths!.isNotEmpty) {
+      final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
+      final mergedVideoPath =
+          await concatenateVideos(_videoPaths, tempOutputPath);
+
+      if (mergedVideoPath == null) {
+        print('Failed to concatenate videos.');
+        return null;
+      }
+
+      // Apply the mask to the concatenated video
+      if (Platform.isIOS) {
+        ffmpegCommand =
+            '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+      } else {
+        ffmpegCommand =
+            '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
+      }
     } else {
-      final maskPath = await _copyMaskToTemporaryFolder();
+      print('Input Path: $inputPath');
 
-      // FFmpeg command using the alpha mask
-      //  ffmpeg -y -i input.mp4 -loop 1 -i mask_with_alpha.png -filter_complex "[1:v]alphaextract[alf];[0:v][alf]alphamerge" -c:v qtrle -an output.mov
-      ffmpegCommand =
-          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
+      if (Platform.isIOS) {
+        final maskPath = await _copyMaskToTemporaryFolder();
+        // iOS FFmpeg command using libx264 codec
+        ffmpegCommand =
+            '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+      } else {
+        final maskPath = await _copyMaskToTemporaryFolder();
 
-      //
-      // ffmpegCommand =
-      //     '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 750k -pix_fmt yuv420p -ac 1 "$outputPath"';
+        // FFmpeg command using the alpha mask
+        //  ffmpeg -y -i input.mp4 -loop 1 -i mask_with_alpha.png -filter_complex "[1:v]alphaextract[alf];[0:v][alf]alphamerge" -c:v qtrle -an output.mov
+        ffmpegCommand =
+            '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v h264_mediacodec -pix_fmt yuv420p "$outputPath"';
+
+        //
+        // ffmpegCommand =
+        //     '-i "$inputPath" -vf "crop=\'min(iw,ih)\':\'min(iw,ih)\',scale=480:480,geq=r=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,p(X,Y))\':g=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,g(X,Y))\':b=\'if(gt((X-W/2)*(X-W/2)+(Y-H/2)*(Y-H/2),(W/2)*(W/2)),0,b(X,Y))\'" -c:v h264_mediacodec -b:v 750k -pix_fmt yuv420p -ac 1 "$outputPath"';
+      }
     }
-    // Uncomment the following line for iOS hardware acceleration
-
-    // Print the FFmpeg command for debugging
     print('FFmpeg Command: $ffmpegCommand');
 
     // Check if the input file exists
@@ -180,6 +225,10 @@ class _OverlayScreenState extends State<OverlayScreen> {
       case (MediaCaptureStatus.success, false, true):
         event.captureRequest.when(
           single: (single) async {
+            if (switching) {
+              _videoPaths?.add(single.file?.path ?? "");
+              return;
+            }
             debugPrint('Video saved: ${single.file?.path}');
             final Map<String, dynamic> videoDetails = {};
             exportCircularVideo(single.file?.path ?? "");
@@ -221,6 +270,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   }
 
   bool pause = false;
+  bool switching = false;
 
   void init() async {
     await Future.delayed(Duration(seconds: 2));
@@ -341,7 +391,11 @@ class _OverlayScreenState extends State<OverlayScreen> {
                         GestureDetector(
                             onTap: () async {
                               try {
+                                switching = true;
+                                widget.cameraController.stopRecording();
+                                setState(() {});
                                 await widget.cameraController.switchCamera();
+                                await widget.cameraController.startRecording();
                               } catch (e) {}
                             },
                             child: CircleAvatar(
@@ -360,6 +414,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                         widget.isLocked
                             ? InkWell(
                                 onTap: () {
+                                  switching = false;
                                   isRecordingValid = widget
                                       .recordingController.isRecordingValid;
                                   widget.cameraController.stopRecording();
