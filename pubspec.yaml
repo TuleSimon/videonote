@@ -41,6 +41,7 @@ dependencies:
   camerawesome:
     git:
       url: https://github.com/mik3yyy/CamerAwesome.git
+      ref: master
   ffmpeg_kit_flutter: 6.0.3
   vibration: ^2.0.1
   path: ^1.9.0
