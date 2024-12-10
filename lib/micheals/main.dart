@@ -764,13 +764,15 @@ class _CameraPageState extends State<VideNotebutton> {
             buttonOffsetY = buttonOffsetY.clamp(
                 -size.height * 0.2, 0.0); // Clamp to a max value
             if (buttonOffsetY <= -size.height * 0.15) {
-              final isGranted = await requestCameraPermission();
-              if (isGranted) {
-                setState(() {
-                  isLocked = true; // Lock the recording once triggered
-                });
-                Vibration.vibrate(duration: 500, amplitude: 255);
-                _showOverlayWithGesture(context);
+              if (!isCurrentlyRecording) {
+                final isGranted = await requestCameraPermission();
+                if (isGranted) {
+                  setState(() {
+                    isLocked = true; // Lock the recording once triggered
+                  });
+                  Vibration.vibrate(duration: 500, amplitude: 255);
+                  _showOverlayWithGesture(context);
+                }
               }
             }
             setState(() {});

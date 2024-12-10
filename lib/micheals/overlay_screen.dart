@@ -1,5 +1,3 @@
-
-
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
@@ -65,8 +63,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
       //final videoFile = File(n ?? "");
 
       // Share the video file
-   //   widget.onDone(videoPath);
-     // final result = await Share.shareXFiles([XFile(videoPath)]);
+      //   widget.onDone(videoPath);
+      // final result = await Share.shareXFiles([XFile(videoPath)]);
     } catch (e) {
       print('Error sharing video file: $e');
     }
@@ -116,6 +114,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     await concatFile.writeAsString(concatContent);
     return concatFile.path;
   }
+
   Future<String?> exportCircularVideo(String inputPath) async {
     // Get the directory to save the output video
     final directory = await getDownloadsDirectory();
@@ -128,7 +127,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     if (_videoPaths!.isNotEmpty) {
       final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
       final mergedVideoPath =
-      await concatenateVideos(_videoPaths, tempOutputPath);
+          await concatenateVideos(_videoPaths, tempOutputPath);
 
       if (mergedVideoPath == null) {
         print('Failed to concatenate videos.');
@@ -137,14 +136,14 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
       // Apply the mask to the concatenated video
       ffmpegCommand =
-      '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+          '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     } else {
       print('Input Path: $inputPath');
 
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     }
 
     print('FFmpeg Command: $ffmpegCommand');
@@ -186,7 +185,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
       return null;
     }
   }
-
 
   Future<String?> exportCVideo(String iP) async {
     VideoProcessor videoProcessor = VideoProcessor();
@@ -422,7 +420,9 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 ),
                                 transform: Matrix4.translationValues(
                                   0, // No horizontal movement
-                                  widget.isRecording ? widget.offset.y.abs()/2 : 200,
+                                  widget.isRecording
+                                      ? widget.offset.y.abs() / 2
+                                      : 200,
                                   // Move vertically (200 units down when collapsed)
                                   0,
                                 ),
