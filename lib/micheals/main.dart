@@ -31,9 +31,12 @@ class VideNotebutton extends StatefulWidget {
   final Function(String) onAddFile;
   final Function(String) onCropped;
   final Function() onTap;
+  double? padding;
+  double? size;
 
   const VideNotebutton(
       {super.key,
+        this.padding,this.size,
       required this.onAddFile,
       required this.onCropped,
       required this.onTap});
@@ -656,29 +659,23 @@ class _CameraPageState extends State<VideNotebutton> {
         onTap: () {
           widget.onTap();
         },
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 100),
-            scale: 1,
-            child: Container(
+        child: Container(
               decoration: const BoxDecoration(
                   color: Color(0x2A767680), shape: BoxShape.circle),
-              padding: const EdgeInsets.all(5),
+              padding: const EdgeInsets.all(widget.padding??5),
               child: SvgPicture.asset(
                 "assets/camera_icon.svg",
                 key: ValueKey<bool>(isCurrentlyRecording),
-                width: 30,
+                width: widget.size??30,
                 colorFilter: ColorFilter.mode(
                     isCurrentlyRecording
                         ? Colors.white
                         : const Color(0xFF858E99),
                     BlendMode.srcIn),
-                height: 30,
+                height: widget.size??30,
               ),
             ),
-          ),
-        ));
+        );
   }
 }
 
