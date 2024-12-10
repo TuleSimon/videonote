@@ -99,6 +99,7 @@ class _MyAppState extends State<MyApp> {
             recording.add(file);
             setState(() {});
           },
+                  child:Icon(Icons.camera),
         onTap: () async {
 
         }),

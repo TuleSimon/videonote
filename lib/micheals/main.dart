@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/timer_controller.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -33,12 +34,14 @@ class VideNotebutton extends StatefulWidget {
   final Function() onTap;
   double? padding;
   double? size;
+  Widget child;
 
    VideNotebutton(
       {super.key,
         this.padding,this.size,
       required this.onAddFile,
       required this.onCropped,
+      required this.child,
       required this.onTap});
 
   @override
@@ -551,7 +554,7 @@ class _CameraPageState extends State<VideNotebutton> {
   StreamController<double> postionStream = StreamController<double>();
 
   void _showOverlayWithGesture(
-      BuildContext context, LongPressStartDetails details) {
+      BuildContext context) {
     if (myOverayEntry == null) {
       myOverayEntry = getMyOverlayEntry(
           contextt: context, x: buttonOffsetX, y: buttonOffsetY);
@@ -562,6 +565,29 @@ class _CameraPageState extends State<VideNotebutton> {
 
   OverlayEntry? myOverayEntry;
 
+  bool _hasPermission = false;
+  Future<void> _checkPermission() async {
+    final hasPermission = await requestCameraPermission();
+    setState(() {
+      _hasPermission = hasPermission;
+    });
+  }
+
+  Future<bool> requestCameraPermission() async {
+    if (await Permission.camera.isGranted && await  Permission.audio.isGranted) {
+      WidgetsBinding.instance.addPostFrameCallback((res) {
+        Vibration.vibrate(duration: 500, amplitude: 255);
+        _showOverlayWithGesture(context);
+      });
+      return true;
+    }
+
+    final status = await Permission.camera.request();
+    final status2 = await Permission.audio.request();
+
+    return status.isGranted && status2.isGranted;
+  }
+
   @override
   Widget build(BuildContext contexts) {
     final size = MediaQuery.of(contexts).size;
@@ -571,8 +597,11 @@ class _CameraPageState extends State<VideNotebutton> {
     // Show the camera interface
     return GestureDetector(
         onLongPressStart: (details) async {
-          Vibration.vibrate(duration: 500, amplitude: 255);
-          _showOverlayWithGesture(context, details);
+            final isGranted = await requestCameraPermission();
+            if(isGranted){
+              Vibration.vibrate(duration: 500, amplitude: 255);
+              _showOverlayWithGesture(context);
+            }
         },
         onLongPressMoveUpdate: (details) {
           debugPrint("moving ${details.offsetFromOrigin.dy}");
@@ -659,22 +688,7 @@ class _CameraPageState extends State<VideNotebutton> {
         onTap: () {
           widget.onTap();
         },
-        child: Container(
-              decoration: const BoxDecoration(
-                  color: Color(0x2A767680), shape: BoxShape.circle),
-              padding:  EdgeInsets.all(widget.padding??5),
-              child: SvgPicture.asset(
-                "assets/camera_icon.svg",
-                key: ValueKey<bool>(isCurrentlyRecording),
-                width: widget.size??30,
-                colorFilter: ColorFilter.mode(
-                    isCurrentlyRecording
-                        ? Colors.white
-                        : const Color(0xFF858E99),
-                    BlendMode.srcIn),
-                height: widget.size??30,
-              ),
-            ),
+        child: widget.child,
         );
   }
 }
