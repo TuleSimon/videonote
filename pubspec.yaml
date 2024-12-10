@@ -74,7 +74,16 @@ flutter:
   assets:
    - assets/
    - lib/assets/
-   - packages/videonote/lib/assets/
+   - packages/videonote/assets/audio_no.svg
+   - packages/videonote/assets/camera_icon.svg
+   - packages/videonote/assets/camera_switch_icon.svg
+   - packages/videonote/assets/delete.svg
+   - packages/videonote/assets/flash_icon.svg
+   - packages/videonote/assets/mask.png
+   - packages/videonote/assets/pause.svg
+   - packages/videonote/assets/pause2.svg
+   - packages/videonote/assets/play.svg
+   - packages/videonote/assets/recording.svg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

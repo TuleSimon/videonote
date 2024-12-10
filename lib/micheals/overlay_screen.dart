@@ -83,7 +83,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     final maskPath = '${tempDir.path}/mask.png';
 
     // Load the mask from assets
-    final byteData = await rootBundle.load('lib/assets/mask.png');
+    final byteData = await rootBundle.load('packages/videonote/assets/mask.png');
     final file = File(maskPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return maskPath;
@@ -163,6 +163,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
       if (ReturnCode.isSuccess(returnCode)) {
         print('Video exported successfully to $outputPath');
         widget.onCropped(outputPath);
+        await Share.shareXFiles([XFile(outputPath)]);
 
         final outputFile = File(outputPath);
         final now = DateTime.now();
@@ -358,7 +359,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                             ? Icons.flash_on
                                             : Icons.flash_auto)
                                         : SvgPicture.asset(
-                                            "lib/assets/flash_icon.svg",
+                                            "packages/videonote/assets/flash_icon.svg",
                                             width: 25,
                                           ),
                               )),
@@ -378,7 +379,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                             child: CircleAvatar(
                               backgroundColor: Colors.white,
                               child: SvgPicture.asset(
-                                "lib/assets/camera_switch_icon.svg",
+                                "packages/videonote/assets/camera_switch_icon.svg",
                                 width: 25,
                               ),
                             )),
@@ -403,7 +404,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(3.0),
                                       child: SvgPicture.asset(
-                                        "lib/assets/pause.svg",
+                                        "packages/videonote/assets/pause.svg",
                                         width: 25,
                                         height: 25,
                                       ),

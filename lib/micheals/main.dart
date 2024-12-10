@@ -383,7 +383,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                 return Row(
                                                   children: [
                                                     SvgPicture.asset(
-                                                      'lib/assets/recording.svg',
+                                                      'packages/videonote/assets/recording.svg',
                                                       width: 20,
                                                       height: 20,
                                                     ),
@@ -419,7 +419,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                             .center,
                                                     children: [
                                                       SvgPicture.asset(
-                                                        "lib/assets/delete.svg",
+                                                        "packages/videonote/assets/delete.svg",
                                                         width: 25,
                                                         height: 25,
                                                       ),
@@ -608,7 +608,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                             const EdgeInsets
                                                                 .all(5),
                                                         child: SvgPicture.asset(
-                                                          "lib/assets/camera_icon.svg",
+                                                          "packages/videonote/assets/camera_icon.svg",
                                                           key: ValueKey<bool>(
                                                               isCurrentlyRecording),
                                                           width: 30,
@@ -638,7 +638,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                             cancelOnLock();
                                           },
                                           icon: SvgPicture.asset(
-                                            "lib/assets/delete.svg",
+                                            "packages/videonote/assets/delete.svg",
                                             width: 25,
                                             height: 25,
                                           ),

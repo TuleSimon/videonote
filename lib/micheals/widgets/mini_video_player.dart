@@ -232,7 +232,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
               child: GestureDetector(
                 onTap: _togglePlayPause,
                 child: SvgPicture.asset(
-                  "package:videonote/lib/assets/play.svg",
+                  "packages/videonote/assets/play.svg",
                   width: 65,
                 ),
               ),
@@ -242,7 +242,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
               child: GestureDetector(
                 onTap: _togglePlayPause,
                 child: SvgPicture.asset(
-                  "package:videonote/lib/assets/pause2.svg",
+                  "packages/videonote/assets/pause2.svg",
                   width: 65,
                 ),
               ),
@@ -257,7 +257,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SvgPicture.asset(
-                    "package:videonote/lib/assets/audio_no.svg",
+                    "packages/videonote/assets/audio_no.svg",
                     width: 15,
                     height: 15,
                   ),
