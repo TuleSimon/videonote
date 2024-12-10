@@ -1,11 +1,10 @@
 import 'dart:async';
 
-import 'package:audionotee/camera_audionote.dart';
-import 'package:audionotee/micheals/timer_controller.dart';
+import 'package:videonote/camera_audionote.dart';
+import 'package:videonote/micheals/timer_controller.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
 
 import 'overlay_screen.dart';

@@ -4,10 +4,10 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:audionotee/camera_audionote.dart';
-import 'package:audionotee/micheals/main.dart';
-import 'package:audionotee/micheals/timer_controller.dart';
-import 'package:audionotee/micheals/widgets/video_processor.dart';
+import 'package:videonote/camera_audionote.dart';
+import 'package:videonote/micheals/main.dart';
+import 'package:videonote/micheals/timer_controller.dart';
+import 'package:videonote/micheals/widgets/video_processor.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';

@@ -1,5 +1,5 @@
-import 'package:audionotee/micheals/overlay_screen.dart';
-import 'package:audionotee/micheals/timer_controller.dart';
+import 'package:videonote/micheals/overlay_screen.dart';
+import 'package:videonote/micheals/timer_controller.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
