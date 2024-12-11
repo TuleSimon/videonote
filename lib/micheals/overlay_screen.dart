@@ -379,7 +379,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
                             child: CircleAvatar(
                               backgroundColor: Colors.white,
                               child: SvgPicture.asset(
-                                "packages/videonote/assets/camera_switch_icon.svg",
+                                "assets/camera_switch_icon.svg",
+                                package: "videonote",
                                 width: 25,
                               ),
                             )),
