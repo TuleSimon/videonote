@@ -232,7 +232,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
               child: GestureDetector(
                 onTap: _togglePlayPause,
                 child: SvgPicture.asset(
-                  "packages/videonote/assets/play.svg",
+                  "assets/play.svg",
+                  package: "videonote",
                   width: 65,
                 ),
               ),
