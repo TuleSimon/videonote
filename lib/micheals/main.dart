@@ -717,6 +717,8 @@ class _CameraPageState extends State<VideNotebutton> {
   Future<bool> requestCameraPermission() async {
     debugPrint((await Permission.camera.status).toString());
     debugPrint((await Permission.microphone.status).toString());
+    final cameraGranted = await Permission.camera.isGranted;
+    final microphoneGranted = await Permission.microphone.isGranted;
     if (await Permission.camera.isGranted &&
         await Permission.microphone.isGranted) {
       debugPrint("here");
@@ -729,9 +731,10 @@ class _CameraPageState extends State<VideNotebutton> {
     } else {
       debugPrint("here2");
 
-      final status2 = await Permission.microphone.request();
+      final status2 = (await Permission.microphone.request());
+      final status = (await Permission.camera.request());
 
-      return status2.isGranted;
+      return (microphoneGranted?true:status2.isGranted) && (cameraGranted?true:status.isGranted);
     }
   }
 
