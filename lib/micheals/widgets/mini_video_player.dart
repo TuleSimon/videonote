@@ -33,6 +33,8 @@ class MiniVideoPlayer extends StatefulWidget {
 class _MiniVideoPlayer extends State<MiniVideoPlayer> {
   BetterPlayerController? _controller;
   bool _isPlaying = false;
+  double _currentProgress = 0.0;
+
   Duration _duration = const Duration();
   final RecordingController _recordingController = RecordingController();
 
@@ -58,6 +60,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
             onVisibilityChanged(visibility);
           },
           eventListener: (event) {
+
             if (event.betterPlayerEventType ==
                 BetterPlayerEventType.initialized) {
               setState(() {
@@ -65,14 +68,33 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                     _controller?.videoPlayerController?.value.duration ??
                         const Duration();
                 _controller?.videoPlayerController?.addListener(playListener);
-                _recordingController.startRecording(
-                    maxT: (_duration.inMilliseconds / 1000).toDouble());
+                if(widget.tapped!=null && widget.tapped!=true) {
+                  _controller?.setVolume(0.0);
+                }
+                else{
+                  _controller?.setVolume(1.0);
+                }
               });
             }
+
             if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
               setState(() {
                 _isPlaying = false;
               });
+            }
+            if(event.betterPlayerEventType == BetterPlayerEventType.progress){
+              final progress = event.parameters!['progress'] as Duration?;
+              final totalDuration = event.parameters!['duration'] as Duration?;
+
+              if (progress != null && totalDuration != null) {
+                setState(() {
+                  _currentProgress = progress.inMilliseconds /
+                      totalDuration.inMilliseconds; // Calculate progress percentage
+                });
+              }
+              else{
+                debugPrint("here null");
+              }
             }
             if (event.betterPlayerEventType == BetterPlayerEventType.play) {
               setState(() {
@@ -103,6 +125,17 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
 
   void playListener() {
     setState(() {
+      if(_currentProgress>0.5) {
+        final isVideoEnded = (_controller?.videoPlayerController?.value
+            .position ?? Duration(seconds: 0)) >=
+            (Duration(milliseconds: (_controller?.videoPlayerController?.value
+                .duration?.inMilliseconds ?? 1) - 100));
+        debugPrint("Video edned " + isVideoEnded.toString());
+        if (isVideoEnded) {
+          _currentProgress = 0;
+        }
+      }
+
       _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
 
     });
@@ -133,9 +166,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
       } else {
         debugPrint("here");
 
-
-        final isVideoEnded = _controller?.videoPlayerController?.value.position ==
-            _controller?.videoPlayerController?.value.duration;
+        final isVideoEnded = (_controller?.videoPlayerController?.value.position??Duration(seconds: 0)) >=
+            (Duration(seconds:(_controller?.videoPlayerController?.value.duration?.inSeconds??1)-1));
+        debugPrint("video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
         if( widget.tapped!=null && widget.tapped!=true) {
           _controller?.seekTo(const Duration(seconds: 0));
         }
@@ -148,7 +181,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
           _isPlaying = true;
         } else {
           _controller?.play();
-          _recordingController.playRecording();
         }
 
       }
@@ -211,23 +243,35 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
               ),
             ),
           ),
+          if(!widget.show)
+          Positioned(
+              left: 8,
+              right: 8,
+              top: 8,
+              bottom: 8,
+          child:  CustomPaint(
+            size: const Size(380, 380),
+            painter: CircularProgressPainter(
+              progress: _currentProgress,
+              color: Color(0xFFE1FEC6),
+              backgroundColor: Colors.white,
+              max: 1.0,
+            ),
+          ) ),
           if (widget.show)
             Center(
-              child: ValueListenableBuilder<double>(
-                valueListenable: _recordingController.recordingDuration,
-                builder: (context, duration, child) {
-                  return CustomPaint(
+              child:
+                   CustomPaint(
                     size: const Size(380, 380),
                     painter: CircularProgressPainter(
-                      progress: duration.toDouble(),
+                      progress: _currentProgress,
                       color: Colors.yellow,
-                      max: (_duration.inMilliseconds / 1000).toDouble(),
+                      backgroundColor: Colors.transparent,
+                      max: 1.0,
                     ),
-                  );
-                },
+                  )
               ),
-            ),
-          if (!_isPlaying)
+          if (!_isPlaying  && widget.show)
             Center(
               child: GestureDetector(
                 onTap: _togglePlayPause,

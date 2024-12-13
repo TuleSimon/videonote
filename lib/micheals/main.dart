@@ -98,9 +98,15 @@ class _CameraPageState extends State<VideNotebutton> {
   void startRecording() async {
     try {
       isCurrentlyRecording = true;
-      cameraController.startRecording().then((on) {
-        _recordingController.startRecording();
-      }); // Handle state if needed
+      try {
+        cameraController.startRecording().then((on) {
+          _recordingController.startRecording();
+        }); // Handle state if needed
+      }
+      catch(e){
+        await Future.delayed(Duration(seconds: 1));
+        return startRecording();
+      }
 
       lockObs = 0;
       setState(() {});
@@ -184,6 +190,10 @@ class _CameraPageState extends State<VideNotebutton> {
     setStatee = null;
   }
 
+
+  List<String> sent = List.empty(growable: true);
+
+
   void sendOnDone() {
     isCurrentlyRecording = false;
     isValidDuration = _recordingController.isRecordingValid;
@@ -191,9 +201,16 @@ class _CameraPageState extends State<VideNotebutton> {
     cameraController.stopRecording();
     sendRecording = true;
     if (_videoPath != null) {
-      widget.onAddFile(_videoPath!);
+      sent.add(_videoPath!);
+      if(_croppedvideoPath==null) {
+        widget.onAddFile(_videoPath!);
+      }
+      else{
+        widget.onCropped(_croppedvideoPath!);
+      }
     }
     _videoPath = null;
+    _croppedvideoPath=null;
     disposeOverlay();
     isLocked = false;
     lockObs = 0;
@@ -345,8 +362,12 @@ class _CameraPageState extends State<VideNotebutton> {
                                   },
                                   offset: value,
                                   onCropped: (String path) {
-                                    _croppedvideoPath = path;
-                                    widget.onCropped(path);
+                                    if(sent.contains(path)) {
+                                      widget.onCropped(path);
+                                    }
+                                    else{
+                                      _croppedvideoPath = path;
+                                    }
                                   },
                                 );
                               }),
@@ -713,30 +734,67 @@ class _CameraPageState extends State<VideNotebutton> {
       _hasPermission = hasPermission;
     });
   }
-
   Future<bool> requestCameraPermission() async {
-    debugPrint((await Permission.camera.status).toString());
-    debugPrint((await Permission.microphone.status).toString());
-    final cameraGranted = await Permission.camera.isGranted;
-    final microphoneGranted = await Permission.microphone.isGranted;
-    if (await Permission.camera.isGranted &&
-        await Permission.microphone.isGranted) {
-      debugPrint("here");
+    final cameraStatus = await Permission.camera.status;
+    final microphoneStatus = await Permission.microphone.status;
 
-      WidgetsBinding.instance.addPostFrameCallback((res) {
+    // If both permissions are already granted
+    if (cameraStatus.isGranted && microphoneStatus.isGranted) {
+      debugPrint("Permissions already granted");
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         Vibration.vibrate(duration: 500, amplitude: 255);
         _showOverlayWithGesture(context);
       });
       return true;
-    } else {
-      debugPrint("here2");
-
-      final status2 = (await Permission.microphone.request());
-      final status = (await Permission.camera.request());
-
-      return (microphoneGranted?true:status2.isGranted) && (cameraGranted?true:status.isGranted);
     }
+
+    // Request permissions if not granted
+    final cameraRequest = await Permission.camera.request();
+    final microphoneRequest = await Permission.microphone.request();
+
+    if (cameraRequest.isGranted && microphoneRequest.isGranted) {
+      return true;
+    }
+
+    // If permissions are denied or restricted, guide the user to settings
+    if (cameraRequest.isPermanentlyDenied || microphoneRequest.isPermanentlyDenied) {
+      debugPrint("Permissions denied. Directing user to settings.");
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Permissions Required"),
+          content: Text(
+              "Camera and microphone permissions are required. Please enable them in the app settings."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                openAppSettings(); // Open app settings
+              },
+              child: Text("Open Settings"),
+            ),
+          ],
+        ),
+      );
+    }
+    else{
+      final opened = await openAppSettings(); // Opens the app settings
+      if (!opened) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to open settings")),
+        );
+      }
+    }
+
+    return false;
   }
+
 
   @override
   Widget build(BuildContext contexts) {

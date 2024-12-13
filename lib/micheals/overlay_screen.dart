@@ -55,6 +55,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   String? _videoPath; // To store the path of the recorded video
   final List<String>? _videoPaths =
       List.empty(growable: true); // To store the path of the recorded video
+
   Future<void> _shareVideoFile(String videoPath) async {
     try {
       // Ensure the file exists before attempting to share
@@ -143,7 +144,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+
     }
 
     print('FFmpeg Command: $ffmpegCommand');
@@ -324,6 +326,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                               radius: context.getWidth() / 2.2,
                               progress: duration.toDouble(),
                               color: Colors.yellow,
+                              backgroundColor: Colors.transparent,
                             ),
                           );
                         },
@@ -480,20 +483,30 @@ class _OverlayScreenState extends State<OverlayScreen> {
 }
 
 class CircularProgressPainter extends CustomPainter {
-  final double progress; // Expected to be between 0 and 10
-  final Color color;
-  final double max;
-  final double radius;
+  final double progress; // Expected to be between 0 and max
+  final Color color; // Color of the progress arc
+  final Color backgroundColor; // Background circle color
+  final double max; // Maximum value for progress
+  final double radius; // Radius of the circle
 
-  CircularProgressPainter(
-      {required this.progress,
-      required this.color,
-      this.max = 30,
-      this.radius = 0});
+  CircularProgressPainter({
+    required this.progress,
+    required this.color,
+    required this.backgroundColor,
+    this.max = 30,
+    this.radius = 0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    // Background Paint
+    final Paint backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5.0;
+
+    // Progress Paint
+    final Paint progressPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5.0
@@ -505,22 +518,27 @@ class CircularProgressPainter extends CustomPainter {
     // Convert normalized progress to radians (0 to 2π)
     final double sweepAngle = normalizedProgress * 2 * pi;
 
+    // Circle rect
     final Rect rect = Rect.fromCircle(
       center: Offset(size.width / 2, size.height / 2),
       radius: radius == 0 ? (min(size.width, size.height) / 2) - 4 : radius,
-      // (min(size.width, size.height) / 2) -
-      //     4, // Ensures the circle fits within the widget
     );
 
-    // Start at the top (-π/2 radians)
-    canvas.drawArc(rect, -pi / 2, sweepAngle, false, paint);
+    // Draw background circle
+    canvas.drawArc(rect, 0, 2 * pi, false, backgroundPaint);
+
+    // Draw progress arc (starting at the top: -π/2 radians)
+    canvas.drawArc(rect, -pi / 2, sweepAngle, false, progressPaint);
   }
 
   @override
   bool shouldRepaint(CircularProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }
+
 
 class CircularOverlayPainter extends CustomPainter {
   @override
