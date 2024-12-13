@@ -922,7 +922,9 @@ class _CameraPageState extends State<VideNotebutton> {
               scale = defScale;
               setStatee?.call(() {});
               if (!_recordingController.isRecordingValid) {
-                cancelOnLock();
+                if(!isLocked) {
+                  cancelOnLock();
+                }
               } else {
                 if (!isLocked) {
                   try {
