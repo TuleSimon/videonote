@@ -132,7 +132,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                                 .duration?.inMilliseconds ??
                             1) -
                         100));
-        debugPrint("Video edned " + isVideoEnded.toString());
+        // debugPrint("Video edned " + isVideoEnded.toString());
         if (isVideoEnded) {
           _currentProgress = 0;
         }
@@ -165,7 +165,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
         _controller?.pause();
         _recordingController.pauseRecording();
       } else {
-        debugPrint("here");
+//        debugPrint("here");
 
         final isVideoEnded =
             (_controller?.videoPlayerController?.value.position ??
@@ -175,8 +175,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                                 ?.inSeconds ??
                             1) -
                         1));
-        debugPrint(
-            "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
+        // debugPrint(
+        //     "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
         if (widget.tapped != null && widget.tapped != true) {
           _controller?.seekTo(const Duration(seconds: 0));
         } else if (isVideoEnded) {
@@ -198,9 +198,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
     super.didUpdateWidget(oldWidget);
     if (widget.tapped != null && widget.tapped != true) {
       _controller?.setVolume(0.0);
-    }
-    if (widget.tapped == true) {
-      _controller?.setVolume(1.0);
     }
   }
 
@@ -312,6 +309,34 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 children: [
                   SvgPicture.asset(
                     "packages/videonote/assets/audio_no.svg",
+                    width: 15,
+                    height: 15,
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    ' ${_duration.inMinutes}:${_duration.inSeconds.remainder(60)}',
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                ],
+              ),
+            )
+          if (_controller!.videoPlayerController!.value!.volume >= 0.1 &&
+              !widget.show)
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    "packages/videonote/assets/audio_on.svg",
                     width: 15,
                     height: 15,
                   ),
