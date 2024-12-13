@@ -297,8 +297,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 ),
               ),
             ),
-          if (_controller!.videoPlayerController!.value!.volume <= 0.1 &&
-              !widget.show)
+          if (_controller!.videoPlayerController!.value!.volume <= 0.1 && !widget.show)
             Positioned(
               bottom: 30,
               left: 0,
@@ -324,9 +323,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                   ),
                 ],
               ),
-            )
-          if (_controller!.videoPlayerController!.value!.volume >= 0.1 &&
-              !widget.show)
+            ),
+          if (_controller!.videoPlayerController!.value!.volume >= 0.1 && !widget.show)
             Positioned(
               bottom: 30,
               left: 0,
