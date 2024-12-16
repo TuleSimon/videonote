@@ -8,6 +8,7 @@
 
     <application
         android:label="audionotee"
+        android:largeHeap="true"
         android:name="${applicationName}"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">

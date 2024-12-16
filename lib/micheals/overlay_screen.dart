@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/main.dart';
+import 'package:flutter/foundation.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/widgets/video_processor.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
@@ -31,12 +32,14 @@ class OverlayScreen extends StatefulWidget {
       required this.isRecording,
       required this.lockObs,
       required this.onStart,
+      required this.getFilePath,
       required this.isValidDuration,
       required this.recordingController});
 
   final CameraController cameraController;
   final RecordingController recordingController;
   final Function(String path) onDone;
+  final  Future<File>  Function(String) getFilePath;
   final Function(String path) onCropped;
   final Function() onError;
   final Function() onStart;
@@ -121,7 +124,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     final directory = await getDownloadsDirectory();
     var uuid = Uuid();
 
-    final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
+    final outputPath =  (await widget.getFilePath('${uuid.v4()}.mp4')).path;
     final maskPath = await _copyMaskToTemporaryFolder();
     String ffmpegCommand = "";
 
@@ -218,7 +221,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
             if (widget.recordingController.isRecordingValid) {
               debugPrint("Reach here duration");
               widget.onDone(file.path);
-              exportCircularVideo(single.file?.path ?? "");
+              compute(exportCircularVideo,single.file?.path ?? "");
 
               setState(() {
                 _videoPath = single.file?.path;

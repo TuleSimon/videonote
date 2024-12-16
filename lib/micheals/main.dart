@@ -1,10 +1,11 @@
 import 'dart:async';
-
+import 'dart:io';
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:vibration/vibration.dart';
 
@@ -31,6 +32,7 @@ class DragValue {
 class VideNotebutton extends StatefulWidget {
   final Function(String) onAddFile;
   final Function(String) onCropped;
+  final  Future<File>  Function(String) getFilePath;
   final Function() onTap;
   double? padding;
   double? size;
@@ -42,6 +44,7 @@ class VideNotebutton extends StatefulWidget {
       this.size,
       required this.onAddFile,
       required this.onCropped,
+      required this.getFilePath,
       required this.child,
       required this.onTap});
 
@@ -187,6 +190,7 @@ class _CameraPageState extends State<VideNotebutton> {
   void disposeOverlay() {
     myOverayEntry?.remove();
     myOverayEntry = null;
+
     setStatee = null;
   }
 
@@ -328,6 +332,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                   isValidDuration: isValidDuration,
                                   cameraController: cameraController,
                                   lockObs: lockObs,
+                                  getFilePath: widget.getFilePath,
                                   isLocked: isLocked,
                                   onError: () {
                                     cancelOnLock();

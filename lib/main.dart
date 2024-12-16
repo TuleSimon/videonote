@@ -1,8 +1,11 @@
 
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/videonote.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 
@@ -95,6 +98,13 @@ class _MyAppState extends State<MyApp> {
                 recording.add(file);
                 setState(() {});
               },
+                  getFilePath: (name)async{
+                    final directory = await getDownloadsDirectory();
+                    var uuid = Uuid();
+
+                    final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
+                    return File(outputPath);
+                  },
           onCropped: (file) async {
             recording.add(file);
             setState(() {});
