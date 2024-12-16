@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:videonote/micheals/overlay_screen.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:better_player/better_player.dart';
@@ -36,71 +37,79 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
   double _currentProgress = 0.0;
 
   Duration _duration = const Duration();
-  final RecordingController _recordingController = RecordingController();
 
   @override
   void initState() {
     super.initState();
-
-    // getVideoDuration(widget.filePath);
-    _recordingController.onDurationExceed = () {
-      _recordingController.restart();
-      _recordingController.pauseRecording();
-    };
-    _controller = BetterPlayerController(
-      BetterPlayerConfiguration(
-          controlsConfiguration: const BetterPlayerControlsConfiguration(
-              showControls: false, showControlsOnInitialize: false),
-          autoPlay: true,
-          aspectRatio: 6 / 19,
-          fit: BoxFit.cover,
-          playerVisibilityChangedBehavior: (visibility) {
-            onVisibilityChanged(visibility);
-          },
-          eventListener: (event) {
-            if (event.betterPlayerEventType ==
-                BetterPlayerEventType.initialized) {
-              setState(() {
-                _duration =
-                    _controller?.videoPlayerController?.value.duration ??
-                        const Duration();
-                _controller?.videoPlayerController?.addListener(playListener);
-                if (widget.tapped != null && widget.tapped != true) {
-                  _controller?.setVolume(0.0);
-                } else {
-                  _controller?.setVolume(1.0);
-                }
-              });
-            }
-
-            if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
-              setState(() {
-                _isPlaying = false;
-              });
-            }
-            if (event.betterPlayerEventType == BetterPlayerEventType.progress) {
-              final progress = event.parameters!['progress'] as Duration?;
-              final totalDuration = event.parameters!['duration'] as Duration?;
-
-              if (progress != null && totalDuration != null) {
+    try {
+      // getVideoDuration(widget.filePath);
+      debugPrint("File Path: ${widget.filePath}");
+      if(!File(widget.filePath).existsSync()) return;
+      if (widget.filePath.isNotEmpty) {
+      _controller = BetterPlayerController(
+        BetterPlayerConfiguration(
+            controlsConfiguration: const BetterPlayerControlsConfiguration(
+                showControls: false, showControlsOnInitialize: false),
+            autoPlay: true,
+            aspectRatio: 6 / 19,
+            fit: BoxFit.cover,
+            playerVisibilityChangedBehavior: (visibility) {
+              onVisibilityChanged(visibility);
+            },
+            eventListener: (event) {
+              if (event.betterPlayerEventType ==
+                  BetterPlayerEventType.initialized) {
                 setState(() {
-                  _currentProgress = progress.inMilliseconds /
-                      totalDuration
-                          .inMilliseconds; // Calculate progress percentage
+                  _duration =
+                      _controller?.videoPlayerController?.value.duration ??
+                          const Duration();
+                  _controller?.videoPlayerController?.addListener(playListener);
+                  if (widget.tapped != null && widget.tapped != true) {
+                    _controller?.setVolume(0.0);
+                  } else {
+                    _controller?.setVolume(1.0);
+                  }
                 });
-              } else {
-                debugPrint("here null");
               }
-            }
-            if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-              setState(() {
-                _isPlaying = true;
-              });
-            }
-          }),
-      betterPlayerDataSource: BetterPlayerDataSource(
-          BetterPlayerDataSourceType.file, widget.filePath),
-    )..setMixWithOthers(true);
+
+              if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
+                setState(() {
+                  _isPlaying = false;
+                });
+              }
+              if (event.betterPlayerEventType ==
+                  BetterPlayerEventType.progress) {
+                final progress = event.parameters?['progress'] as Duration?;
+                final totalDuration =
+                    event.parameters?['duration'] as Duration?;
+
+                if (progress != null && totalDuration != null) {
+                  setState(() {
+                    _currentProgress =
+                        progress.inMilliseconds / totalDuration.inMilliseconds;
+                  });
+                } else {
+                  debugPrint("Progress or duration is null");
+                }
+              }
+              if (event.betterPlayerEventType == BetterPlayerEventType.play) {
+                setState(() {
+                  _isPlaying = true;
+                });
+              }
+            }),
+        betterPlayerDataSource: BetterPlayerDataSource(
+            BetterPlayerDataSourceType.file, widget.filePath),
+      );
+      if(Platform.isAndroid){
+        _controller.setMixWithOthers(true);
+      }
+      } else {
+        debugPrint("Invalid file path");
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   void onVisibilityChanged(double visibleFraction) async {
@@ -163,10 +172,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
 
       if (_controller!.videoPlayerController!.value.isPlaying) {
         _controller?.pause();
-        _recordingController.pauseRecording();
       } else {
-//        debugPrint("here");
-
         final isVideoEnded =
             (_controller?.videoPlayerController?.value.position ??
                     Duration(seconds: 0)) >=
@@ -183,8 +189,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
           // Restart the video if it has ended
           _controller?.seekTo(const Duration(seconds: 0));
           _controller?.play();
-          _recordingController.restart();
-          _recordingController.playRecording();
           _isPlaying = true;
         } else {
           _controller?.play();
@@ -203,7 +207,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || _controller?.isVideoInitialized() == false) {
+    if (_controller == null || _controller?.isVideoInitialized() != true) {
       return const FractionallySizedBox(
           widthFactor: 0.5,
           heightFactor: 0.5,
@@ -297,7 +301,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 ),
               ),
             ),
-          if (_controller!.videoPlayerController!.value!.volume <= 0.1 && !widget.show)
+          if (_controller?.videoPlayerController?.value.volume != null &&
+              _controller!.videoPlayerController!.value.volume <= 0.1 &&
+              !widget.show)
             Positioned(
               bottom: 30,
               left: 0,
@@ -324,7 +330,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                 ],
               ),
             ),
-          if (_controller!.videoPlayerController!.value!.volume >= 0.1 && !widget.show)
+          if (_controller?.videoPlayerController?.value.volume != null &&
+              _controller!.videoPlayerController!.value.volume >= 0.1 &&
+              !widget.show)
             Positioned(
               bottom: 30,
               left: 0,

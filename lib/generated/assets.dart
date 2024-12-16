@@ -3,7 +3,7 @@ class Assets {
   Assets._();
 
   static const String assetsAudioNo = 'assets/audio_no.svg';
-  static const String assetsAudioOn = 'lib/assets/audio_on.svg';
+  static const String assetsAudioOn = 'assets/audio_on.svg';
   static const String assetsCameraIcon = 'assets/camera_icon.svg';
   static const String assetsCameraSwitchIcon = 'assets/camera_switch_icon.svg';
   static const String assetsDelete = 'assets/delete.svg';
@@ -15,6 +15,7 @@ class Assets {
   static const String assetsRecording = 'assets/recording.svg';
   static const String generatedAssets = 'lib/generated/assets.dart';
   static const String libAssetsAudioNo = 'lib/assets/audio_no.svg';
+  static const String libAssetsAudioOn = 'lib/assets/audio_on.svg';
   static const String libAssetsCameraIcon = 'lib/assets/camera_icon.svg';
   static const String libAssetsCameraSwitchIcon = 'lib/assets/camera_switch_icon.svg';
   static const String libAssetsDelete = 'lib/assets/delete.svg';

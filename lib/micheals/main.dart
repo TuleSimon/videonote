@@ -264,15 +264,7 @@ class _CameraPageState extends State<VideNotebutton> {
         return StatefulBuilder(builder: (context, setState2) {
           setStatee = setState2;
           return (_videoPath != null)
-              ? PopScope(
-                  canPop: true, // Allow back navigation
-                  onPopInvokedWithResult: (bool didPop, Object? result) async {
-                    if (didPop) {
-                      cancelOnDone();
-                      return;
-                    }
-                  },
-                  child: Scaffold(
+              ? Scaffold(
                     body: Center(
                       child: SizedBox(
                         width: context.getWidth() * 0.9,
@@ -319,17 +311,8 @@ class _CameraPageState extends State<VideNotebutton> {
                         ],
                       ),
                     ),
-                  ),
-                )
-              : PopScope(
-                  canPop: true, // Allow back navigation
-                  onPopInvokedWithResult: (bool didPop, Object? result) async {
-                    if (didPop) {
-                      cancelOnDone();
-                      return;
-                    }
-                  },
-                  child: Scaffold(
+                  )
+              : Scaffold(
                     body: Stack(
                       children: [
                         // if (isCurrentlyRecording)
@@ -706,7 +689,6 @@ class _CameraPageState extends State<VideNotebutton> {
                         )
                       ],
                     ),
-                  ),
                 );
         });
       },
