@@ -51,6 +51,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
             controlsConfiguration: const BetterPlayerControlsConfiguration(
                 showControls: false, showControlsOnInitialize: false),
             autoPlay: true,
+            looping: true,
             aspectRatio: 6 / 19,
             fit: BoxFit.cover,
             playerVisibilityChangedBehavior: (visibility) {
@@ -101,9 +102,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
         betterPlayerDataSource: BetterPlayerDataSource(
             BetterPlayerDataSourceType.file, widget.filePath),
       );
-      if(Platform.isAndroid){
-        _controller.setMixWithOthers(true);
-      }
+
       } else {
         debugPrint("Invalid file path");
       }
