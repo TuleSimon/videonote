@@ -215,7 +215,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
           ));
     }
 
-    return GestureDetector(
+    return  LayoutBuilder( // Ensure constraints from parent (SizedBox) are respected
+      builder: (context, constraints) {
+        return GestureDetector(
       onTap: () {
         _togglePlayPause();
       },
@@ -227,31 +229,19 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
             right: 10,
             top: 10,
             bottom: 10,
-            child: Container(
-              clipBehavior: Clip.hardEdge,
-              decoration: const BoxDecoration(shape: BoxShape.circle),
-              child: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()
-                  ..scale(
-                    -1.0, // Flip horizontally
-                    1.0, // Flip vertically
-                  ),
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: _controller
-                            ?.videoPlayerController?.value?.size?.width ??
-                        0,
-                    height: _controller
-                            ?.videoPlayerController?.value?.size?.height ??
-                        0,
-                    child: BetterPlayer(controller: _controller!),
-                  ),
-                ),
+            child:  ClipOval( // Ensures proper circular clipping
+             child: Container(
+               clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle
               ),
-            ),
+              width: constraints.maxWidth,  // Take parent's width
+              height: constraints.maxHeight, // Take parent's height
+              child: BetterPlayer(
+                controller: _controller!,
+
+              ),),
+    ),
           ),
           if (!widget.show)
             Positioned(
@@ -361,5 +351,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
         ],
       ),
     );
+  },
+);
   }
 }

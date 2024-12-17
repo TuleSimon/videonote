@@ -294,6 +294,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 quality: VideoRecordingQuality.sd,
                                 ios: CupertinoVideoOptions(
                                   fps: 30,
+                                  fileType: CupertinoFileType.mpeg4,
                                   codec: CupertinoCodecType.hevc,
                                 ),
                                 android: AndroidVideoOptions(

@@ -99,7 +99,11 @@ class _MyAppState extends State<MyApp> {
                 setState(() {});
               },
                   getFilePath: (name)async{
-                    final directory = await getDownloadsDirectory();
+
+                    final directory =Platform.isIOS?await getApplicationDocumentsDirectory(): await getDownloadsDirectory();
+                    if (!await directory!.exists()) {
+                    await directory.create(recursive: true);
+                    }
                     var uuid = Uuid();
 
                     final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
