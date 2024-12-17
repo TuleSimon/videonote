@@ -221,7 +221,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
             if (widget.recordingController.isRecordingValid) {
               debugPrint("Reach here duration");
               widget.onDone(file.path);
-              compute(exportCircularVideo,single.file?.path ?? "");
+              exportCircularVideo(single.file?.path ?? "");
 
               setState(() {
                 _videoPath = single.file?.path;
