@@ -38,6 +38,7 @@ dependencies:
   cross_file: ^0.3.3+6
   flutter_svg:
   image: ^4.1.3
+  video_player: ^2.9.2
   #camera: ^0.11.0+2
   meta: ^1.10.0
   better_player:

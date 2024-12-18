@@ -131,14 +131,13 @@ class _MyAppState extends State<MyApp> {
               return  AnimatedSize(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeIn,
-                      child: SizedBox(
-                        width: currentlyTapped == index
-                            ? context.getSize().width * 0.8
-                            : context.getSize().width * 0.5,
-                        height: currentlyTapped == index
-                            ? context.getSize().width * 0.8
-                            : context.getSize().width * 0.5,
                         child: MiniVideoPlayer(
+                          width: currentlyTapped == index
+                              ? context.getSize().width * 0.8
+                              : context.getSize().width * 0.5,
+                          height: currentlyTapped == index
+                              ? context.getSize().width * 0.8
+                              : context.getSize().width * 0.5,
                           tapped: currentlyTapped==index,
                           onPlay: () {
                             currentlyTapped = index;
@@ -151,7 +150,7 @@ class _MyAppState extends State<MyApp> {
                           autoPlay: true,
                           filePath: recording[index],
                           show: false,
-                        ),
+
                       ),
                     );
 

@@ -12,7 +12,7 @@ class HoleWidget extends StatelessWidget {
       child: ClipPath(
         clipper: HoleClipper(radius: radius),
         child: Container(
-          color: Colors.grey.withOpacity(0.5),
+          color: Colors.transparent,
           child: child, // Foreground color
         ),
       ),

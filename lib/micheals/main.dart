@@ -274,6 +274,8 @@ class _CameraPageState extends State<VideNotebutton> {
                         width: context.getWidth() * 0.9,
                         height: context.getWidth() * 0.9,
                         child: MiniVideoPlayer(
+                          width: context.getWidth() * 0.85,
+                          height: context.getWidth() * 0.85,
                           radius: context.getWidth() / 2.4,
                           show: true,
                           filePath: _videoPath!,
