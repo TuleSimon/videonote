@@ -55,7 +55,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
     try {
       if (!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
-        _controller = VideoPlayerController.file(File(widget.filePath))
+        _controller = VideoPlayerController.file(File(widget.filePath),
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: true
+        ))
           ..addListener(_videoListener)
           ..setLooping(true)
           ..initialize().then((_) {
@@ -97,18 +100,63 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
     super.dispose();
   }
 
-  void _togglePlayPause() {
-    if (_controller == null || !_controller!.value.isInitialized) return;
 
-    setState(() {
-      if (_isPlaying) {
-        _controller?.pause();
-        widget.onPause?.call();
-      } else {
+
+  void _togglePlayPause() {
+    debugPrint("${_controller!.value.isPlaying}");
+    if (_controller == null ||
+        _controller?.initialize() == false) return;
+
+
+      if (widget.tapped != true && widget.tapped != null) {
+        _controller?.setVolume(1.0);
+        _controller?.seekTo(const Duration(seconds: 1));
         _controller?.play();
         widget.onPlay?.call();
+        setState(() {
+
+        });
+        return;
       }
-    });
+
+      if (_controller!.value.isPlaying) {
+        _controller?.pause();
+      } else {
+        final isVideoEnded =
+            (_controller?.value.position ??
+                Duration(seconds: 0)) >=
+                (Duration(
+                    seconds: (_controller?.value.duration
+                        ?.inSeconds ??
+                        1) -
+                        1));
+        // debugPrint(
+        //     "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
+        if (widget.tapped != null && widget.tapped != true) {
+          _controller?.seekTo(const Duration(seconds: 1));
+        } else if (isVideoEnded) {
+          // Restart the video if it has ended
+          _controller?.seekTo(const Duration(seconds: 1));
+          _controller?.play();
+          _isPlaying = true;
+          setState(() {
+
+          });
+        } else {
+          _controller?.play();
+        }
+      }
+  }
+
+  @override
+  void didUpdateWidget(covariant MiniVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tapped != null && widget.tapped != true) {
+      _controller?.setVolume(0.0);
+      setState(() {
+
+      });
+    }
   }
 
   @override
@@ -137,7 +185,14 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
                     child: SizedBox(
                       width: _controller?.value.size.width ?? 0,
                       height: _controller?.value.size.height ?? 0,
-                      child: VideoPlayer(_controller!),
+                      child:  Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..scale(
+                            -1.0, // Flip horizontally
+                            1.0, // Flip vertically
+                          ),
+                        child: VideoPlayer(_controller!)),
                     ),
                   ),
                 ),

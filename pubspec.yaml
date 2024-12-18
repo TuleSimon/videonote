@@ -76,6 +76,7 @@ flutter:
    - assets/
    - lib/assets/
    - packages/videonote/assets/audio_no.svg
+   - packages/videonote/assets/audio_on.svg
    - packages/videonote/assets/camera_icon.svg
    - packages/videonote/assets/camera_switch_icon.svg
    - packages/videonote/assets/delete.svg
