@@ -57,9 +57,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
       if (widget.filePath.isNotEmpty) {
         _controller = VideoPlayerController.file(File(widget.filePath),
         videoPlayerOptions: VideoPlayerOptions(
-          mixWithOthers: true
+          mixWithOthers: false
         ))
-          ..addListener(_videoListener)
           ..setLooping(true)
           ..initialize().then((_) {
             setState(() {
@@ -122,29 +121,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayer> {
       if (_controller!.value.isPlaying) {
         _controller?.pause();
       } else {
-        final isVideoEnded =
-            (_controller?.value.position ??
-                Duration(seconds: 0)) >=
-                (Duration(
-                    seconds: (_controller?.value.duration
-                        ?.inSeconds ??
-                        1) -
-                        1));
-        // debugPrint(
-        //     "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
-        if (widget.tapped != null && widget.tapped != true) {
-          _controller?.seekTo(const Duration(seconds: 1));
-        } else if (isVideoEnded) {
-          // Restart the video if it has ended
-          _controller?.seekTo(const Duration(seconds: 1));
           _controller?.play();
-          _isPlaying = true;
-          setState(() {
-
-          });
-        } else {
-          _controller?.play();
-        }
       }
   }
 

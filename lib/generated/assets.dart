@@ -36,6 +36,7 @@ class Assets {
   static const String utilsMlkitUtils = 'lib/micheals/utils/mlkit_utils.dart';
   static const String widgetsCustomMediaPreview = 'lib/micheals/widgets/custom_media_preview.dart';
   static const String widgetsMiniVideoPlayer = 'lib/micheals/widgets/mini_video_player.dart';
+  static const String widgetsMiniVideoPlayerBetter = 'lib/micheals/widgets/mini_video_player_better.dart';
   static const String widgetsVideoProcessor = 'lib/micheals/widgets/video_processor.dart';
 
 }

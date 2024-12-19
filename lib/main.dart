@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:videonote/camera_audionote.dart';
+import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
 import 'package:videonote/videonote.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -131,7 +132,7 @@ class _MyAppState extends State<MyApp> {
               return  AnimatedSize(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeIn,
-                        child: MiniVideoPlayer(
+                        child: MiniVideoPlayerBetter(
                           width: currentlyTapped == index
                               ? context.getSize().width * 0.8
                               : context.getSize().width * 0.5,
