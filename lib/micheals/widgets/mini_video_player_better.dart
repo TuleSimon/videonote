@@ -229,29 +229,65 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              ClipOval(
-                child: Container(
-                  width: widget.width,
-                  height: widget.height,
+          ClipOval(
+
+          child: Container(
+
+          width: widget.width,
+
+            height: widget.height,
+
+            child: Stack(
+
+              children: [
+
+                Positioned.fill(
+
                   child: FittedBox(
+
                     fit: BoxFit.cover,
+
                     child: SizedBox(
+
                       width: _controller?.videoPlayerController?.value?.size?.width ?? 0,
-                      height: _controller?.videoPlayerController?.value?.size?.width ?? 0,
-                      child:  Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..scale(
-                              -1.0, // Flip horizontally
-                              1.0, // Flip vertically
-                            ),
-                          child: BetterPlayer(
-                            controller: _controller!,
-                          )),
+
+                      height: _controller?.videoPlayerController?.value?.size?.height ?? 0,
+
+                      child: Transform(
+
+                        alignment: Alignment.center,
+
+                        transform: Matrix4.identity()
+
+                          ..scale(
+
+                            -1.0, // Flip horizontally
+
+                            1.0,  // Flip vertically
+
+                          ),
+
+                        child: BetterPlayer(
+
+                          controller: _controller!,
+
+                        ),
+
+                      ),
+
                     ),
+
                   ),
+
                 ),
-              ),
+
+              ],
+
+            ),
+
+          ),
+
+        ),
               if (!widget.show)
                 Positioned(
                     left: -8,
