@@ -4,10 +4,10 @@ import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/hole_widget.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_vlc_player/vlc_player_flutter.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class MiniVideoPlayerBetter extends StatefulWidget {
+class MiniVideoPlayerVlc extends StatefulWidget {
   final String filePath;
   final bool autoPlay;
   final bool? tapped;
@@ -18,7 +18,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
   final Function()? onPlay;
   final Function()? onPause;
 
-  const MiniVideoPlayerBetter({
+  const MiniVideoPlayerVlc({
     super.key,
     required this.filePath,
     this.autoPlay = false,
@@ -37,7 +37,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
   }
 }
 
-class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
+class _MiniVideoPlayer extends State<MiniVideoPlayerVlc> {
   VlcPlayerController? _controller;
   bool _isPlaying = false;
   double _currentProgress = 0.0;
@@ -52,10 +52,17 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
       debugPrint("File Path: ${widget.filePath}");
       if(!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
-        _controller = VlcPlayerController.network(
-          'https://media.w3.org/2010/05/sintel/trailer.mp4',
-          hwAcc: HwAcc.FULL,
-          autoPlay: false,
+        _controller = VlcPlayerController.file(
+          File(widget.filePath),
+          autoPlay: true,
+          autoInitialize: true,
+          onInit: (){
+            setState(() {
+
+            });
+            debugPrint("init");
+            _controller?.setLooping(true);
+          },
           options: VlcPlayerOptions(),
         );
 
@@ -69,11 +76,11 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   void onVisibilityChanged(double visibleFraction) async {
     bool isPlaying = (_controller!.isPlaying()) == true;
-    bool initialized = _controller!.isVideoInitialized() == true;
+    bool initialized = _controller?.value?.isInitialized==true;
     if (visibleFraction >= 0.5) {
       if (widget.autoPlay && initialized && !isPlaying) {
         if (widget.tapped != null && widget.tapped != true) {
-          _controller?.setVolume(0.0);
+          _controller?.setVolume(0);
         }
         _controller?.seekTo(const Duration(seconds: 0));
         _controller!.play();
@@ -109,8 +116,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void dispose() async{
     try {
-      await _controller.stopRendererScanning();
-      await _controller.dispose();
+      await _controller?.stopRendererScanning();
+      await _controller?.dispose();
     }
     catch(e){
       debugPrint(e.toString());
@@ -120,25 +127,25 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   void _togglePlayPause() {
     if (_controller == null ||
-        _controller?.videoPlayerController?.value.initialized == false) return;
+        _controller?.value?.isInitialized!=true) return;
 
     setState(() {
       if (widget.tapped != true && widget.tapped != null) {
-        _controller?.setVolume(1.0);
+        _controller?.setVolume(100);
         _controller?.seekTo(const Duration(seconds: 0));
         _controller?.play();
         widget.onPlay?.call();
         return;
       }
 
-      if (_controller!.videoPlayerController!.value.isPlaying) {
+      if (_controller!.value.isPlaying) {
         _controller?.pause();
       } else {
         final isVideoEnded =
-            (_controller?.videoPlayerController?.value.position ??
+            (_controller?.value.position ??
                 Duration(seconds: 0)) >=
                 (Duration(
-                    seconds: (_controller?.videoPlayerController?.value.duration
+                    seconds: (_controller?.value.duration
                         ?.inSeconds ??
                         1) -
                         1));
@@ -159,19 +166,20 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   @override
-  void didUpdateWidget(covariant MiniVideoPlayerBetter oldWidget) {
+  void didUpdateWidget(covariant MiniVideoPlayerVlc oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.tapped != null && widget.tapped != true) {
-      _controller?.setVolume(0.0);
+      if(_controller?.value?.isInitialized==true)
+      _controller?.setVolume(0);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || _controller?.isVideoInitialized() != true) {
-      return const FractionallySizedBox(
-          widthFactor: 0.5,
-          heightFactor: 0.5,
+    if (_controller == null || _controller?.value?.isInitialized != true) {
+      return  SizedBox(
+          width: widget.width,
+          height: widget.height,
           child: CircularProgressIndicator(
             color: Colors.amber,
           ));
@@ -206,9 +214,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
                     child: SizedBox(
 
-                      width: _controller?.videoPlayerController?.value?.size?.width ?? 0,
+                      width: _controller?.value?.size?.width ?? 0,
 
-                      height: _controller?.videoPlayerController?.value?.size?.height ?? 0,
+                      height: _controller?.value?.size?.height ?? 0,
 
                       child: Transform(
 
@@ -225,7 +233,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                           ),
 
                         child: VlcPlayer(
-                          controller: _controller,
+                          controller: _controller!,
                           aspectRatio: 16 / 9,
                           placeholder: Center(child: CircularProgressIndicator()),
                         ),
@@ -296,8 +304,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     ),
                   ),
                 ),
-              if (_controller?.videoPlayerController?.value.volume != null &&
-                  _controller!.videoPlayerController!.value.volume <= 0.1 &&
+              if (_controller?.value.volume != null &&
+                  _controller!.value.volume <= 1 &&
                   !widget.show)
                 Positioned(
                   bottom: 30,
@@ -325,8 +333,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     ],
                   ),
                 ),
-              if (_controller?.videoPlayerController?.value.volume != null &&
-                  _controller!.videoPlayerController!.value.volume >= 0.1 &&
+              if (_controller?.value.volume != null &&
+                  _controller!.value.volume >= 1 &&
                   !widget.show)
                 Positioned(
                   bottom: 30,

@@ -247,45 +247,34 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
             child: Stack(
 
               children: [
+                ClipOval(
 
-                Positioned.fill(
+                  child: Container(
 
-                  child: FittedBox(
+                    width: widget.width,
 
-                    fit: BoxFit.cover,
+                    height: widget.height,
 
-                    child: SizedBox(
+                    child: FittedBox(
 
-                      width: _controller?.videoPlayerController?.value?.size?.width ?? 0,
+                      fit: BoxFit.cover,
 
-                      height: _controller?.videoPlayerController?.value?.size?.height ?? 0,
-
-                      child: Transform(
-
-                        alignment: Alignment.center,
-
-                        transform: Matrix4.identity()
-
-                          ..scale(
-
-                            -1.0, // Flip horizontally
-
-                            1.0,  // Flip vertically
-
-                          ),
-
-                        child: BetterPlayer(
-
-                          controller: _controller!,
-
-                        ),
-
+                      child: SizedBox(
+                        width: _controller?.videoPlayerController?.value?.size?.width ?? 0,
+                        height: _controller?.videoPlayerController?.value?.size?.width ?? 0,
+                        child:  Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..scale(
+                                Platform.isAndroid?-1.0:1.0, // Flip horizontally
+                                1.0, // Flip vertically
+                              ),
+                            child: BetterPlayer(
+                              controller: _controller!,
+                            )),
                       ),
-
                     ),
-
                   ),
-
                 ),
 
               ],
@@ -297,12 +286,12 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
         ),
               if (!widget.show)
                 Positioned(
-                    left: -8,
-                    right: -8,
-                    top: -8,
-                    bottom: -8,
+                    left: -2,
+                    right: -3,
+                    top: -2,
+                    bottom: -2,
                     child: CustomPaint(
-                      size: const Size(380, 380),
+                      size:  Size(widget.width, widget.height),
                       painter: CircularProgressPainter(
                         progress: _currentProgress,
                         color: Color(0xFFE1FEC6),
@@ -312,12 +301,12 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     )),
               if (widget.show)
                 Positioned(
-                    left: -8,
-                    right: -8,
-                    top: -8,
-                    bottom: -8,
+                    left: -3,
+                    right: -3,
+                    top: -3,
+                    bottom: -3,
                     child: CustomPaint(
-                      size: const Size(380, 380),
+                      size:  Size(widget.width, widget.height),
                       painter: CircularProgressPainter(
                         progress: _currentProgress,
                         color: Colors.yellow,

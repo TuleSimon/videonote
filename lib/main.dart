@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-
 void main() async {
   runApp(MyApp());
 }
@@ -46,9 +45,7 @@ class _MyAppState extends State<MyApp> {
     if (await Permission.manageExternalStorage.isGranted) {
       return true;
     } else {
-      return await Permission.manageExternalStorage
-          .request()
-          .isGranted;
+      return await Permission.manageExternalStorage.request().isGranted;
     }
   }
 
@@ -95,10 +92,12 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
-              VideNotebutton(onAddFile: (file) async {
-                recording.add(file);
-                setState(() {});
-              },
+              VideNotebutton(
+                  onAddFile: (file) async {
+                    recording.add(file);
+                    setState(() {});
+                  },
+                  onStarted: () {},
                   getFilePath: (name) async {
                     final directory = Platform.isIOS
                         ? await getApplicationDocumentsDirectory()
@@ -108,8 +107,8 @@ class _MyAppState extends State<MyApp> {
                     }
                     var uuid = Uuid();
 
-                    final outputPath = '${directory
-                        ?.path}/output_circular_${uuid.v4()}.mp4';
+                    final outputPath =
+                        '${directory?.path}/output_circular_${uuid.v4()}.mp4';
                     return File(outputPath);
                   },
                   onCropped: (file) async {
@@ -117,14 +116,12 @@ class _MyAppState extends State<MyApp> {
                     setState(() {});
                   },
                   child: Icon(Icons.camera),
-                  onTap: () async {
-
-                  }),
+                  onTap: () async {}),
             ],
           ),
         ),
         body: GestureDetector(
-          // Detect taps outside the MiniVideoPlayer
+            // Detect taps outside the MiniVideoPlayer
             onTap: () {
               if (currentlyTapped != -1) {
                 setState(() {
@@ -134,10 +131,7 @@ class _MyAppState extends State<MyApp> {
             },
             behavior: HitTestBehavior.translucent,
             child: Container(
-              width: MediaQuery
-                  .of(context)
-                  .size
-                  .width,
+              width: MediaQuery.of(context).size.width,
               margin: const EdgeInsets.symmetric(horizontal: 10),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -149,19 +143,11 @@ class _MyAppState extends State<MyApp> {
                     curve: Curves.easeIn,
                     child: MiniVideoPlayerBetter(
                       width: currentlyTapped == index
-                          ? context
-                          .getSize()
-                          .width * 0.8
-                          : context
-                          .getSize()
-                          .width * 0.5,
+                          ? context.getSize().width * 0.8
+                          : context.getSize().width * 0.5,
                       height: currentlyTapped == index
-                          ? context
-                          .getSize()
-                          .width * 0.8
-                          : context
-                          .getSize()
-                          .width * 0.5,
+                          ? context.getSize().width * 0.8
+                          : context.getSize().width * 0.5,
                       tapped: currentlyTapped == index,
                       onPlay: () {
                         currentlyTapped = index;
@@ -174,7 +160,6 @@ class _MyAppState extends State<MyApp> {
                       autoPlay: true,
                       filePath: recording[index],
                       show: false,
-
                     ),
                   );
                 },
