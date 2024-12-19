@@ -4,6 +4,7 @@ import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/hole_widget.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_vlc_player/vlc_player_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class MiniVideoPlayerBetter extends StatefulWidget {
@@ -37,7 +38,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
 }
 
 class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
-  BetterPlayerController? _controller;
+  VlcPlayerController? _controller;
   bool _isPlaying = false;
   double _currentProgress = 0.0;
 
@@ -51,61 +52,11 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
       debugPrint("File Path: ${widget.filePath}");
       if(!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
-        _controller = BetterPlayerController(
-          BetterPlayerConfiguration(
-              controlsConfiguration: const BetterPlayerControlsConfiguration(
-                  showControls: false, showControlsOnInitialize: false),
-              autoPlay: true,
-              looping: true,
-              aspectRatio: 6 / 19,
-              fit: BoxFit.cover,
-              playerVisibilityChangedBehavior: (visibility) {
-                onVisibilityChanged(visibility);
-              },
-              eventListener: (event) {
-                if (event.betterPlayerEventType ==
-                    BetterPlayerEventType.initialized) {
-                  setState(() {
-                    _duration =
-                        _controller?.videoPlayerController?.value.duration ??
-                            const Duration();
-                    _controller?.videoPlayerController?.addListener(playListener);
-                    if (widget.tapped != null && widget.tapped != true) {
-                      _controller?.setVolume(0.0);
-                    } else {
-                      _controller?.setVolume(1.0);
-                    }
-                  });
-                }
-
-                if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
-                  setState(() {
-                    _isPlaying = false;
-                  });
-                }
-                if (event.betterPlayerEventType ==
-                    BetterPlayerEventType.progress) {
-                  final progress = event.parameters?['progress'] as Duration?;
-                  final totalDuration =
-                  event.parameters?['duration'] as Duration?;
-
-                  if (progress != null && totalDuration != null) {
-                    setState(() {
-                      _currentProgress =
-                          progress.inMilliseconds / totalDuration.inMilliseconds;
-                    });
-                  } else {
-                    debugPrint("Progress or duration is null");
-                  }
-                }
-                if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-                  setState(() {
-                    _isPlaying = true;
-                  });
-                }
-              }),
-          betterPlayerDataSource: BetterPlayerDataSource(
-              BetterPlayerDataSourceType.file, widget.filePath),
+        _controller = VlcPlayerController.network(
+          'https://media.w3.org/2010/05/sintel/trailer.mp4',
+          hwAcc: HwAcc.FULL,
+          autoPlay: false,
+          options: VlcPlayerOptions(),
         );
 
       } else {
@@ -134,33 +85,32 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
     }
   }
 
-  void playListener() {
-    setState(() {
-      if (_currentProgress > 0.5) {
-        final isVideoEnded =
-            (_controller?.videoPlayerController?.value.position ??
-                Duration(seconds: 0)) >=
-                (Duration(
-                    milliseconds: (_controller?.videoPlayerController?.value
-                        .duration?.inMilliseconds ??
-                        1) -
-                        100));
-        // debugPrint("Video edned " + isVideoEnded.toString());
-        if (isVideoEnded) {
-          _currentProgress = 0;
-        }
-      }
-
-      _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
-    });
-  }
+  // void playListener() {
+  //   setState(() {
+  //     if (_currentProgress > 0.5) {
+  //       final isVideoEnded =
+  //           (_controller?.videoPlayerController?.value.position ??
+  //               Duration(seconds: 0)) >=
+  //               (Duration(
+  //                   milliseconds: (_controller?.videoPlayerController?.value
+  //                       .duration?.inMilliseconds ??
+  //                       1) -
+  //                       100));
+  //       // debugPrint("Video edned " + isVideoEnded.toString());
+  //       if (isVideoEnded) {
+  //         _currentProgress = 0;
+  //       }
+  //     }
+  //
+  //     _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
+  //   });
+  // }
 
   @override
-  void dispose() {
+  void dispose() async{
     try {
-      _controller?.pause();
-      _controller?.videoPlayerController?.dispose();
-      _controller?.dispose();
+      await _controller.stopRendererScanning();
+      await _controller.dispose();
     }
     catch(e){
       debugPrint(e.toString());
@@ -274,10 +224,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
                           ),
 
-                        child: BetterPlayer(
-
-                          controller: _controller!,
-
+                        child: VlcPlayer(
+                          controller: _controller,
+                          aspectRatio: 16 / 9,
+                          placeholder: Center(child: CircularProgressIndicator()),
                         ),
 
                       ),

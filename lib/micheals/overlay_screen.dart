@@ -285,7 +285,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                       child: HoleWidget(
                         radius: context.getWidth() / 2.35,
                         child: AspectRatio(
-                          aspectRatio: 1 / 1.4,
+                          aspectRatio: 1 / 1,
                           child: CameraAwesomeBuilder.awesome(
                             onMediaCaptureEvent: _handleMediaCaptureEvent,
                             saveConfig: SaveConfig.video(
