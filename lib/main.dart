@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,9 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-
 void main() async {
-
   runApp(MyApp());
 }
 
@@ -95,69 +92,79 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
-              VideNotebutton(onAddFile: (file) async {
-                recording.add(file);
-                setState(() {});
-              },
-                  getFilePath: (name)async{
-
-                    final directory =Platform.isIOS?await getApplicationDocumentsDirectory(): await getDownloadsDirectory();
+              VideNotebutton(
+                  onAddFile: (file) async {
+                    recording.add(file);
+                    setState(() {});
+                  },
+                  onStarted: () {},
+                  getFilePath: (name) async {
+                    final directory = Platform.isIOS
+                        ? await getApplicationDocumentsDirectory()
+                        : await getDownloadsDirectory();
                     if (!await directory!.exists()) {
-                    await directory.create(recursive: true);
+                      await directory.create(recursive: true);
                     }
                     var uuid = Uuid();
 
-                    final outputPath = '${directory?.path}/output_circular_${uuid.v4()}.mp4';
+                    final outputPath =
+                        '${directory?.path}/output_circular_${uuid.v4()}.mp4';
                     return File(outputPath);
                   },
-          onCropped: (file) async {
-            recording.add(file);
-            setState(() {});
-          },
-                  child:Icon(Icons.camera),
-        onTap: () async {
-
-        }),
+                  onCropped: (file) async {
+                    recording.add(file);
+                    setState(() {});
+                  },
+                  child: Icon(Icons.camera),
+                  onTap: () async {}),
             ],
           ),
         ),
-        body: Container(
-          width: MediaQuery.of(context).size.width,
-          margin: const EdgeInsets.symmetric(horizontal: 10),
-          child: ListView.builder(
-            shrinkWrap: true,
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: recording.length,
-            itemBuilder: (context, index) {
-              return  AnimatedSize(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeIn,
-                        child: MiniVideoPlayerBetter(
-                          width: currentlyTapped == index
-                              ? context.getSize().width * 0.8
-                              : context.getSize().width * 0.5,
-                          height: currentlyTapped == index
-                              ? context.getSize().width * 0.8
-                              : context.getSize().width * 0.5,
-                          tapped: currentlyTapped==index,
-                          onPlay: () {
-                            currentlyTapped = index;
-                            setState(() {});
-                          },
-                          onPause: () {
-                            currentlyTapped = -1;
-                            setState(() {});
-                          },
-                          autoPlay: true,
-                          filePath: recording[index],
-                          show: false,
-
-                      ),
-                    );
-
+        body: GestureDetector(
+            // Detect taps outside the MiniVideoPlayer
+            onTap: () {
+              if (currentlyTapped != -1) {
+                setState(() {
+                  currentlyTapped = -1; // Reset the tapped index
+                });
+              }
             },
-          ),
-        ),
+            behavior: HitTestBehavior.translucent,
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: recording.length,
+                itemBuilder: (context, index) {
+                  return AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeIn,
+                    child: MiniVideoPlayerBetter(
+                      width: currentlyTapped == index
+                          ? context.getSize().width * 0.8
+                          : context.getSize().width * 0.5,
+                      height: currentlyTapped == index
+                          ? context.getSize().width * 0.8
+                          : context.getSize().width * 0.5,
+                      tapped: currentlyTapped == index,
+                      onPlay: () {
+                        currentlyTapped = index;
+                        setState(() {});
+                      },
+                      onPause: () {
+                        currentlyTapped = -1;
+                        setState(() {});
+                      },
+                      autoPlay: true,
+                      filePath: recording[index],
+                      show: false,
+                    ),
+                  );
+                },
+              ),
+            )),
       ),
     );
   }

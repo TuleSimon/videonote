@@ -49,7 +49,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
     try {
       // getVideoDuration(widget.filePath);
       debugPrint("File Path: ${widget.filePath}");
-      if(!File(widget.filePath).existsSync()) return;
+      if (!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
         _controller = BetterPlayerController(
           BetterPlayerConfiguration(
@@ -69,7 +69,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     _duration =
                         _controller?.videoPlayerController?.value.duration ??
                             const Duration();
-                    _controller?.videoPlayerController?.addListener(playListener);
+                    _controller?.videoPlayerController?.addListener(
+                        playListener);
                     if (widget.tapped != null && widget.tapped != true) {
                       _controller?.setVolume(0.0);
                     } else {
@@ -78,7 +79,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                   });
                 }
 
-                if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
+                if (event.betterPlayerEventType ==
+                    BetterPlayerEventType.pause) {
                   setState(() {
                     _isPlaying = false;
                   });
@@ -92,7 +94,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                   if (progress != null && totalDuration != null) {
                     setState(() {
                       _currentProgress =
-                          progress.inMilliseconds / totalDuration.inMilliseconds;
+                          progress.inMilliseconds /
+                              totalDuration.inMilliseconds;
                     });
                   } else {
                     debugPrint("Progress or duration is null");
@@ -107,7 +110,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           betterPlayerDataSource: BetterPlayerDataSource(
               BetterPlayerDataSourceType.file, widget.filePath),
         );
-
       } else {
         debugPrint("Invalid file path");
       }
@@ -157,7 +159,14 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    try {
+      _controller?.pause();
+      _controller?.videoPlayerController?.dispose();
+      _controller?.dispose();
+    }
+    catch (e) {
+      debugPrint(e.toString());
+    }
     super.dispose();
   }
 
@@ -220,7 +229,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           ));
     }
 
-    return  LayoutBuilder( // Ensure constraints from parent (SizedBox) are respected
+    return LayoutBuilder( // Ensure constraints from parent (SizedBox) are respected
       builder: (context, constraints) {
         return GestureDetector(
           onTap: () {
@@ -231,71 +240,63 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
             children: [
           ClipRRect( borderRadius: BorderRadius.all(Radius.circular(300)),
 
-          child: Container(
+                child: Container(
 
-          width: widget.width,
+                  width: widget.width,
 
-            height: widget.height,
+                  height: widget.height,
 
-            child: Stack(
+                  child: Stack(
 
-              children: [
+                    children: [
+                      ClipOval(
 
-                Positioned.fill(
+                        child: Container(
 
-                  child: FittedBox(
+                          width: widget.width,
 
-                    fit: BoxFit.cover,
+                          height: widget.height,
 
-                    child: SizedBox(
+                          child: FittedBox(
 
-                      width: _controller?.videoPlayerController?.value?.size?.width ?? 0,
+                            fit: BoxFit.cover,
 
-                      height: _controller?.videoPlayerController?.value?.size?.height ?? 0,
-
-                      child: Transform(
-
-                        alignment: Alignment.center,
-
-                        transform: Matrix4.identity()
-
-                          ..scale(
-
-                            -1.0, // Flip horizontally
-
-                            1.0,  // Flip vertically
-
+                            child: SizedBox(
+                              width: _controller?.videoPlayerController?.value
+                                  ?.size?.width ?? 0,
+                              height: _controller?.videoPlayerController?.value
+                                  ?.size?.width ?? 0,
+                              child: Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()
+                                    ..scale(
+                                      Platform.isAndroid ? -1.0 : 1.0,
+                                      // Flip horizontally
+                                      1.0, // Flip vertically
+                                    ),
+                                  child: BetterPlayer(
+                                    controller: _controller!,
+                                  )),
+                            ),
                           ),
-
-                        child: BetterPlayer(
-
-                          controller: _controller!,
-
                         ),
-
                       ),
 
-                    ),
+                    ],
 
                   ),
 
                 ),
 
-              ],
-
-            ),
-
-          ),
-
-        ),
+              ),
               if (!widget.show)
                 Positioned(
-                    left: -8,
-                    right: -8,
-                    top: -8,
-                    bottom: -8,
+                    left: -2,
+                    right: -3,
+                    top: -2,
+                    bottom: -2,
                     child: CustomPaint(
-                      size: const Size(380, 380),
+                      size: Size(widget.width, widget.height),
                       painter: CircularProgressPainter(
                         progress: _currentProgress,
                         color: Color(0xFFE1FEC6),
@@ -305,12 +306,12 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     )),
               if (widget.show)
                 Positioned(
-                    left: -8,
-                    right: -8,
-                    top: -8,
-                    bottom: -8,
+                    left: -3,
+                    right: -3,
+                    top: -3,
+                    bottom: -3,
                     child: CustomPaint(
-                      size: const Size(380, 380),
+                      size: Size(widget.width, widget.height),
                       painter: CircularProgressPainter(
                         progress: _currentProgress,
                         color: Colors.yellow,
@@ -346,27 +347,32 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                   bottom: 30,
                   left: 0,
                   right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        "packages/videonote/assets/audio_no.svg",
-                        width: 15,
-                        height: 15,
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        ' ${_duration.inMinutes}:${_duration.inSeconds.remainder(60)}',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ),
+                  child: GestureDetector(
+                      onTap: () {
+                        _controller?.setVolume(1);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SvgPicture.asset(
+                            "packages/videonote/assets/audio_no.svg",
+                            width: 15,
+                            height: 15,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            ' ${_duration.inMinutes}:${_duration.inSeconds
+                                .remainder(60)}',
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                          ),
+                        ],
+                      )),
                 ),
               if (_controller?.videoPlayerController?.value.volume != null &&
                   _controller!.videoPlayerController!.value.volume >= 0.1 &&
@@ -375,27 +381,32 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                   bottom: 30,
                   left: 0,
                   right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SvgPicture.asset(
-                        "packages/videonote/assets/audio_on.svg",
-                        width: 15,
-                        height: 15,
-                      ),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Text(
-                        ' ${_duration.inMinutes}:${_duration.inSeconds.remainder(60)}',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white),
-                      ),
-                    ],
-                  ),
+                  child: GestureDetector(
+                      onTap: () {
+                        _controller?.setVolume(0);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SvgPicture.asset(
+                            "packages/videonote/assets/audio_on.svg",
+                            width: 15,
+                            height: 15,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(
+                            ' ${_duration.inMinutes}:${_duration.inSeconds
+                                .remainder(60)}',
+                            style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                          ),
+                        ],
+                      )),
                 )
             ],
           ),

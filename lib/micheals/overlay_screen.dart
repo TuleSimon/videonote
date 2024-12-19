@@ -168,7 +168,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
       if (ReturnCode.isSuccess(returnCode)) {
         print('Video exported successfully to $outputPath');
         widget.onCropped(outputPath);
-        await Share.shareXFiles([XFile(outputPath)]);
+        //await Share.shareXFiles([XFile(outputPath)]);
 
         final outputFile = File(outputPath);
         final now = DateTime.now();
@@ -285,7 +285,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                       child: HoleWidget(
                         radius: context.getWidth() / 2.35,
                         child: AspectRatio(
-                          aspectRatio: 1 / 1.4,
+                          aspectRatio: 1 / 1,
                           child: CameraAwesomeBuilder.awesome(
                             onMediaCaptureEvent: _handleMediaCaptureEvent,
                             saveConfig: SaveConfig.video(

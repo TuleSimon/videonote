@@ -11,6 +11,7 @@ import 'package:vibration/vibration.dart';
 
 import 'overlay_screen.dart';
 import 'widgets/mini_video_player.dart';
+import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
 
 class DragValue {
   final double x;
@@ -31,6 +32,7 @@ class DragValue {
 
 class VideNotebutton extends StatefulWidget {
   final Function(String) onAddFile;
+  final Function() onStarted;
   final Function(String) onCropped;
   final  Future<File>  Function(String) getFilePath;
   final Function() onTap;
@@ -44,6 +46,7 @@ class VideNotebutton extends StatefulWidget {
       this.size,
       required this.onAddFile,
       required this.onCropped,
+      required this.onStarted,
       required this.getFilePath,
       required this.child,
       required this.onTap});
@@ -202,7 +205,12 @@ class _CameraPageState extends State<VideNotebutton> {
     isCurrentlyRecording = false;
     isValidDuration = _recordingController.isRecordingValid;
     lastRecord = _recordingController.stopRecording();
-    cameraController.stopRecording();
+    try {
+      cameraController.stopRecording();
+    }
+    catch(e){
+
+    }
     sendRecording = true;
     if (_videoPath != null) {
       sent.add(_videoPath!);
@@ -273,7 +281,7 @@ class _CameraPageState extends State<VideNotebutton> {
                       child: SizedBox(
                         width: context.getWidth() * 0.9,
                         height: context.getWidth() * 0.9,
-                        child: MiniVideoPlayer(
+                        child: MiniVideoPlayerBetter(
                           width: context.getWidth() * 0.85,
                           height: context.getWidth() * 0.85,
                           radius: context.getWidth() / 2.4,
@@ -709,6 +717,7 @@ class _CameraPageState extends State<VideNotebutton> {
       myOverayEntry = getMyOverlayEntry(
           contextt: context, x: buttonOffsetX, y: buttonOffsetY);
       Overlay.of(context).insert(myOverayEntry!);
+      widget.onStarted();
     }
     setState(() {});
   }
@@ -734,7 +743,7 @@ class _CameraPageState extends State<VideNotebutton> {
         Vibration.vibrate(duration: 500, amplitude: 255);
         _showOverlayWithGesture(context);
       });
-      return true;
+      return false;
     }
 
     // Request permissions if not granted
@@ -810,6 +819,7 @@ class _CameraPageState extends State<VideNotebutton> {
           onVerticalDragUpdate: (details) async {
             // Handle vertical drag to start recording
             // Detect upward drag
+
             buttonOffsetY += details.delta.dy; // Update button's offset
             buttonOffsetY = buttonOffsetY.clamp(
                 -size.height * 0.2, 0.0); // Clamp to a max value
@@ -820,7 +830,6 @@ class _CameraPageState extends State<VideNotebutton> {
                   setState(() {
                     isLocked = true; // Lock the recording once triggered
                   });
-                  Vibration.vibrate(duration: 500, amplitude: 255);
                   _showOverlayWithGesture(context);
                 }
               }
@@ -850,6 +859,9 @@ class _CameraPageState extends State<VideNotebutton> {
               // Dragging up: only allow up movement or return to 0
               if (buttonOffsetX >= -5) {
                 if (details.localOffsetFromOrigin.dy < 0 || buttonOffsetY < 0) {
+                  final newY =  details.localOffsetFromOrigin.dy
+                  .clamp(-size.height * 0.2, 0.0);
+                  if(newY==buttonOffsetY) return;
                   buttonOffsetX = 0;
                   buttonOffsetY = details.localOffsetFromOrigin.dy
                       .clamp(-size.height * 0.2, 0.0);
@@ -866,20 +878,23 @@ class _CameraPageState extends State<VideNotebutton> {
 
                   buttonOffsetX2.value =
                       DragValue(x: buttonOffsetX, y: buttonOffsetY);
+                  setStatee?.call(() {});
                 }
-                setStatee?.call(() {});
               }
 
               // Dragging left: only allow left movement or return to 0
               if (buttonOffsetY.abs() <= 5.0) {
                 if (details.localOffsetFromOrigin.dx < 0 || buttonOffsetX < 0) {
+                  final newX =  details.localOffsetFromOrigin.dx
+                      .clamp(-size.width * 0.5, 0.0);
+                  if(newX==buttonOffsetX) return;
                   buttonOffsetY = 0;
                   buttonOffsetX = details.localOffsetFromOrigin.dx
                       .clamp(-size.width * 0.5, 0.0);
                   buttonOffsetX2.value =
                       DragValue(x: buttonOffsetX, y: buttonOffsetY);
+                  setStatee?.call(() {});
                 }
-                setStatee?.call(() {});
               }
 
               // Trigger actions based on drag thresholds
