@@ -229,7 +229,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-          ClipOval(
+          ClipRRect( borderRadius: BorderRadius.all(Radius.circular(300)),
 
           child: Container(
 
