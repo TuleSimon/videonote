@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:videonote/micheals/overlay_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class MiniVideoPlayerPlaylist extends StatefulWidget {
@@ -59,6 +60,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
       debugPrint("No valid file paths provided.");
       return;
     }
+    debugPrint("file paths ${widget.filePaths.join(" ")}");
 
     _playlistController = BetterPlayerPlaylistController(
       dataSources,
@@ -81,6 +83,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
   }
 
   void _handlePlayerEvents(BetterPlayerEvent event) {
+    if(!mounted) return;
     if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
       setState(() {
         _duration =
@@ -189,7 +192,6 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
                         showControlsOnInitialize: false,
                       ),
                       autoPlay: widget.autoPlay,
-                      looping: true,
                       aspectRatio: 6 / 19,
                       fit: BoxFit.cover,
                       eventListener: _handlePlayerEvents,
@@ -201,6 +203,20 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
                   ),
                 ),
               ),
+              Positioned(
+                  left: -1,
+                  right: -1,
+                  top: -1,
+                  bottom: -1,
+                  child: CustomPaint(
+                    size: Size(widget.width, widget.height),
+                    painter: CircularProgressPainter(
+                      progress: _currentProgress,
+                      color: Colors.yellow,
+                      backgroundColor: Colors.transparent,
+                      max: 1.0,
+                    ),
+                  )),
               if (!_isPlaying)
                 Center(
                   child: SvgPicture.asset(

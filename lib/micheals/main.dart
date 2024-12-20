@@ -11,6 +11,7 @@ import 'package:camera/camera.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:vibration/vibration.dart';
+import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit_config.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/return_code.dart';
 import 'package:flutter/services.dart' show MethodChannel, rootBundle;
@@ -96,23 +97,7 @@ class _CameraPageState extends State<VideNotebutton> {
     );
     cameraController =
         Camera2.CameraController(frontCamera, ResolutionPreset.medium);
-    cameraController!.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            // Handle access errors here.
-            break;
-          default:
-            // Handle other errors here.
-            break;
-        }
-      }
-    });
+
   }
 
   @override
@@ -283,27 +268,50 @@ class _CameraPageState extends State<VideNotebutton> {
 
   Future<String?> concatenateVideos(
       List<String> videoPaths, String tempOutputPath) async {
+    // Check if all files exist
+    for (String path in videoPaths) {
+      final file = File(path);
+      if (!file.existsSync()) {
+        print('File does not exist: $path');
+        return null;
+      }
+    }
+
     // Create a temporary text file to list all video files
     final concatFilePath = await _createConcatFile(videoPaths);
+
     // FFmpeg command to concatenate videos
     String concatCommand =
         '-f concat -safe 0 -i "$concatFilePath" -c copy "$tempOutputPath"';
+
     // Execute the FFmpeg command
+     FFmpegKitConfig.enableLogCallback((log) {
+      print("FFmpeg log: ${log.getMessage()}");
+    });
+
     final concatResult = await FFmpegKit.execute(concatCommand);
     final returnCode = await concatResult.getReturnCode();
-    if (returnCode!.isValueSuccess()) {
+
+    if (returnCode != null && returnCode.isValueSuccess()) {
+      print("Concatenation succeeded: $tempOutputPath");
       return tempOutputPath;
     } else {
-      print('Error concatenating videos.');
+      print("Error concatenating videos. Code: ${returnCode?.getValue()}");
+      final sessionLog = await concatResult.getLogsAsString();
+      print("Session Log: $sessionLog");
       return null;
     }
   }
 
   Future<String> _createConcatFile(List<String> videoPaths) async {
-    final directory = await getTemporaryDirectory();
-    final concatFile = File('${directory.path}/concat.txt');
-    final concatContent = videoPaths.map((path) => "file '$path'").join('\n');
-    await concatFile.writeAsString(concatContent);
+    final concatFile = File('${(await getTemporaryDirectory()).path}/concat.txt');
+    final sink = concatFile.openWrite();
+
+    for (String path in videoPaths) {
+      sink.write("file '$path'\n");
+    }
+
+    await sink.close();
     return concatFile.path;
   }
 
@@ -329,7 +337,8 @@ class _CameraPageState extends State<VideNotebutton> {
     String ffmpegCommand = "";
 
     if (_videoPaths.isNotEmpty) {
-      final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
+      debugPrint("video paths: ${_videoPaths.join(", ")}");
+      final tempOutputPath =  (await widget.getFilePath('${uuid.v4()}.mp4')).path;
       final mergedVideoPath =
           await concatenateVideos([..._videoPaths], tempOutputPath);
 
@@ -441,6 +450,7 @@ class _CameraPageState extends State<VideNotebutton> {
       final file = await cameraController?.stopVideoRecording();
       if (shouldDo) {
         saveFile(file?.path);
+        initCamera();
       }
     }
   }
@@ -498,7 +508,7 @@ class _CameraPageState extends State<VideNotebutton> {
           setStatee = setState2;
           return BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-              child: (_videoPath != null)
+              child: ((_videoPath != null || _videoPaths.isNotEmpty) && cameraController?.value?.isRecordingVideo!=true)
                   ? Scaffold(
                       body: Center(
                         child: SizedBox(
@@ -988,10 +998,36 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void _showOverlayWithGesture(BuildContext context) {
     if (myOverayEntry == null) {
-      myOverayEntry = getMyOverlayEntry(
-          contextt: context, x: buttonOffsetX, y: buttonOffsetY);
-      Overlay.of(context).insert(myOverayEntry!);
-      widget.onStarted();
+      if(cameraController?.value?.isInitialized!=true) {
+        cameraController!.initialize().then((_) {
+          if (!mounted) {
+            return;
+          }
+          myOverayEntry = getMyOverlayEntry(
+              contextt: context, x: buttonOffsetX, y: buttonOffsetY);
+          Overlay.of(context).insert(myOverayEntry!);
+          widget.onStarted();
+          setState(() {});
+        }).catchError((Object e) {
+          if (e is CameraException) {
+            switch (e.code) {
+              case 'CameraAccessDenied':
+              // Handle access errors here.
+                break;
+              default:
+              // Handle other errors here.
+                break;
+            }
+          }
+        });
+      }
+      else{
+        myOverayEntry = getMyOverlayEntry(
+            contextt: context, x: buttonOffsetX, y: buttonOffsetY);
+        Overlay.of(context).insert(myOverayEntry!);
+        widget.onStarted();
+      }
+
     }
     setState(() {});
   }

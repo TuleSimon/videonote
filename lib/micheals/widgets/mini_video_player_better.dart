@@ -59,8 +59,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                   showControls: false, showControlsOnInitialize: false),
               autoPlay: true,
               looping: true,
-              aspectRatio: 6 / 19,
-              fit: BoxFit.cover,
+              aspectRatio: 19 / 19,
+              fit: BoxFit.fitWidth,
               playerVisibilityChangedBehavior: (visibility) {
                 onVisibilityChanged(visibility);
               },
@@ -250,9 +250,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
                   height: widget.height,
 
-                  child: Stack(
-
-                    children: [
+                  child:
                       ClipOval(
 
                         child: Container(
@@ -269,7 +267,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                               width: _controller?.videoPlayerController?.value
                                   ?.size?.width ?? 0,
                               height: _controller?.videoPlayerController?.value
-                                  ?.size?.width ?? 0,
+                                  ?.size?.height ?? 0,
                               child: Transform(
                                   alignment: Alignment.center,
                                   transform: Matrix4.identity()
@@ -286,11 +284,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                         ),
                       ),
 
-                    ],
 
                   ),
 
-                ),
 
               ),
               if (!widget.show)

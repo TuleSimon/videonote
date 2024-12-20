@@ -425,14 +425,13 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                         0], // Fallback to the first camera if no opposite is found
                                   );
 
-                                  //Stop recording if it is active
-                                  // if (widget.cameraController!.value
-                                  //     .isRecordingVideo) {
-                                  // final file =   await widget.cameraController!
-                                  //       .stopVideoRecording();
-                                  // widget.flipCamera(file.path);
-                                  //   print("Stopped current recording.");
-                                  // }
+                               //   Stop recording if it is active
+                                  if (widget.cameraController!.value
+                                      .isRecordingVideo) {
+                                  final file =   await widget.cameraController!.stopVideoRecording();
+                                  widget.flipCamera(file.path);
+                                    print("Stopped current recording.");
+                                  }
                                   final currentDescription =
                                       widget.cameraController!.description;
                                   final otherCameras = widget.cameras
