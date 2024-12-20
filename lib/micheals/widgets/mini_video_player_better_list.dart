@@ -203,20 +203,20 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
                   ),
                 ),
               ),
-              Positioned(
-                  left: -1,
-                  right: -1,
-                  top: -1,
-                  bottom: -1,
-                  child: CustomPaint(
-                    size: Size(widget.width, widget.height),
-                    painter: CircularProgressPainter(
-                      progress: _currentProgress,
-                      color: Colors.yellow,
-                      backgroundColor: Colors.transparent,
-                      max: 1.0,
-                    ),
-                  )),
+              // Positioned(
+              //     left: -1,
+              //     right: -1,
+              //     top: -1,
+              //     bottom: -1,
+              //     child: CustomPaint(
+              //       size: Size(widget.width, widget.height),
+              //       painter: CircularProgressPainter(
+              //         progress: _currentProgress,
+              //         color: Colors.yellow,
+              //         backgroundColor: Colors.transparent,
+              //         max: 1.0,
+              //       ),
+              //     )),
               if (!_isPlaying)
                 Center(
                   child: SvgPicture.asset(
