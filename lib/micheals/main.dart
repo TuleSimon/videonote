@@ -1,17 +1,28 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:videonote/camera_audionote.dart';
-import 'package:videonote/micheals/timer_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
+import 'package:videonote/micheals/timer_controller.dart';
+import 'package:videonote/micheals/widgets/mini_video_player.dart';
+import 'package:camera/camera.dart' as Camera2;
+import 'package:camera/camera.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:vibration/vibration.dart';
-
+import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_full_gpl/return_code.dart';
+import 'package:flutter/services.dart' show MethodChannel, rootBundle;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
 import 'overlay_screen.dart';
 import 'widgets/mini_video_player.dart';
 import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
+import 'package:videonote/micheals/widgets/mini_video_player_better_list.dart';
+
+DateTime? _recordingStartTime;
 
 class DragValue {
   final double x;
@@ -34,7 +45,7 @@ class VideNotebutton extends StatefulWidget {
   final Function(String) onAddFile;
   final Function() onStarted;
   final Function(String) onCropped;
-  final  Future<File>  Function(String) getFilePath;
+  final Future<File> Function(String) getFilePath;
   final Function() onTap;
   double? padding;
   double? size;
@@ -57,6 +68,7 @@ class VideNotebutton extends StatefulWidget {
 
 class _CameraPageState extends State<VideNotebutton> {
   String? _videoPath;
+  List<String> _videoPaths = List.empty(growable: true);
   String? _croppedvideoPath;
 
   double buttonOffsetY = 0.0; // Vertical offset
@@ -65,23 +77,54 @@ class _CameraPageState extends State<VideNotebutton> {
       ValueNotifier(DragValue(x: 0, y: 0));
   double defScale = 1.2; // Horizontal offset
   late double scale = defScale;
-  final CameraController cameraController = CameraController();
+  Camera2.CameraController? cameraController;
   final RecordingController _recordingController = RecordingController();
 
+  DateTime? _recordingStartTime;
   bool isCurrentlyRecording = false;
   bool isLocked = false;
   bool isValidDuration = false;
   double? lastRecord;
 
+  void initCamera() async {
+    _cameras = await Camera2.availableCameras();
+    // Find the front-facing camera
+    final frontCamera = _cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
+      orElse: () => _cameras[
+          0], // Fallback to the first camera if no front camera is found
+    );
+    cameraController =
+        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
+    cameraController!.initialize().then((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    }).catchError((Object e) {
+      if (e is CameraException) {
+        switch (e.code) {
+          case 'CameraAccessDenied':
+            // Handle access errors here.
+            break;
+          default:
+            // Handle other errors here.
+            break;
+        }
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    initCamera();
     _recordingController.onDurationExceed = _handleDurationExceed;
   }
 
   void _handleDurationExceed() async {
     // Stop the recording and update the UI
-    cameraController.stopRecording();
+    stopVideoRecording();
     setState(() {
       isCurrentlyRecording = false;
       isValidDuration = true;
@@ -104,15 +147,12 @@ class _CameraPageState extends State<VideNotebutton> {
   void startRecording() async {
     try {
       isCurrentlyRecording = true;
-      try {
-        cameraController.startRecording().then((on) {
-          _recordingController.startRecording();
-        }); // Handle state if needed
-      }
-      catch(e){
-        await Future.delayed(Duration(seconds: 1));
-        return startRecording();
-      }
+      startVideoRecording();
+
+      // cameraController.init(CameraContext())
+      //     cameraController.startRecording().then((on) {
+      //       _recordingController.startRecording();
+      //     }); // Handle state if needed
 
       lockObs = 0;
       setState(() {});
@@ -136,7 +176,7 @@ class _CameraPageState extends State<VideNotebutton> {
     isCurrentlyRecording = false;
     isValidDuration = false;
     _recordingController.stopRecording();
-    cameraController.stopRecording();
+    stopVideoRecording();
     lockObs = 0;
     buttonOffsetX = 0;
     buttonOffsetY = 0;
@@ -157,14 +197,16 @@ class _CameraPageState extends State<VideNotebutton> {
   void cancelOnLock() {
     isCurrentlyRecording = false;
     isValidDuration = false;
+    _recordingStartTime = null;
     buttonOffsetX = 0;
     buttonOffsetY = 0;
     _recordingController.stopRecording();
     try {
-      cameraController.stopRecording();
+      stopVideoRecording(shouldDo: false);
     } catch (e) {
       debugPrint(e.toString());
     }
+    _videoPaths.clear();
     myOverayEntry?.remove();
     myOverayEntry = null;
     setStatee = null;
@@ -178,7 +220,6 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void sendOnLock() {
     setState(() {
-      sendRecording = true;
       isCurrentlyRecording = false;
       isValidDuration = _recordingController.isRecordingValid;
       lastRecord = _recordingController.stopRecording();
@@ -193,36 +234,27 @@ class _CameraPageState extends State<VideNotebutton> {
   void disposeOverlay() {
     myOverayEntry?.remove();
     myOverayEntry = null;
-
+    _recordingStartTime = null;
+    setState(() {});
     setStatee = null;
   }
 
-
   List<String> sent = List.empty(growable: true);
-
 
   void sendOnDone() {
     isCurrentlyRecording = false;
     isValidDuration = _recordingController.isRecordingValid;
     lastRecord = _recordingController.stopRecording();
-    try {
-      cameraController.stopRecording();
-    }
-    catch(e){
-
-    }
+    stopVideoRecording(shouldDo: false);
     sendRecording = true;
-    if (_videoPath != null) {
-      sent.add(_videoPath!);
-      if(_croppedvideoPath==null) {
-        widget.onAddFile(_videoPath!);
-      }
-      else{
-        widget.onCropped(_croppedvideoPath!);
-      }
+    if (_croppedvideoPath != null) {
+      widget.onCropped(_croppedvideoPath!);
+      sendRecording = false;
+      _videoPaths.clear();
     }
     _videoPath = null;
-    _croppedvideoPath=null;
+    _croppedvideoPath = null;
+    _videoPaths.clear();
     disposeOverlay();
     isLocked = false;
     lockObs = 0;
@@ -235,6 +267,10 @@ class _CameraPageState extends State<VideNotebutton> {
   void cancelOnDone() {
     setState(() {
       _videoPath = null;
+      _croppedvideoPath = null;
+      _videoPaths.clear();
+      sendRecording = false;
+      stopVideoRecording(shouldDo: false);
       isLocked = false;
       buttonOffsetY = 0;
       buttonOffsetX = 0;
@@ -245,11 +281,195 @@ class _CameraPageState extends State<VideNotebutton> {
     setStatee?.call(() {});
   }
 
+  Future<String?> concatenateVideos(
+      List<String> videoPaths, String tempOutputPath) async {
+    // Create a temporary text file to list all video files
+    final concatFilePath = await _createConcatFile(videoPaths);
+    // FFmpeg command to concatenate videos
+    String concatCommand =
+        '-f concat -safe 0 -i "$concatFilePath" -c copy "$tempOutputPath"';
+    // Execute the FFmpeg command
+    final concatResult = await FFmpegKit.execute(concatCommand);
+    final returnCode = await concatResult.getReturnCode();
+    if (returnCode!.isValueSuccess()) {
+      return tempOutputPath;
+    } else {
+      print('Error concatenating videos.');
+      return null;
+    }
+  }
+
+  Future<String> _createConcatFile(List<String> videoPaths) async {
+    final directory = await getTemporaryDirectory();
+    final concatFile = File('${directory.path}/concat.txt');
+    final concatContent = videoPaths.map((path) => "file '$path'").join('\n');
+    await concatFile.writeAsString(concatContent);
+    return concatFile.path;
+  }
+
+  Future<String> _copyMaskToTemporaryFolder() async {
+    final tempDir = await getTemporaryDirectory();
+    final maskPath = '${tempDir.path}/mask.png';
+
+    // Load the mask from assets
+    final byteData =
+        await rootBundle.load('packages/videonote/assets/mask.png');
+    final file = File(maskPath);
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+    return maskPath;
+  }
+
+  Future<String?> exportCircularVideo(String inputPath) async {
+    // Get the directory to save the output video
+    final directory = await getDownloadsDirectory();
+    var uuid = Uuid();
+
+    final outputPath = (await widget.getFilePath('${uuid.v4()}.mp4')).path;
+    final maskPath = await _copyMaskToTemporaryFolder();
+    String ffmpegCommand = "";
+
+    if (_videoPaths.isNotEmpty) {
+      final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
+      final mergedVideoPath =
+          await concatenateVideos([..._videoPaths], tempOutputPath);
+
+      if (mergedVideoPath == null) {
+        print('Failed to concatenate videos.');
+        return null;
+      }
+
+      // Apply the mask to the concatenated video
+      ffmpegCommand =
+          '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+    } else {
+      print('Input Path: $inputPath');
+
+      // iOS and Android use libx264 with full GPL
+      final maskPath = await _copyMaskToTemporaryFolder();
+      ffmpegCommand =
+          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+    }
+
+    print('FFmpeg Command: $ffmpegCommand');
+
+    // Check if the input file exists
+    if (await File(inputPath).exists()) {
+      print('Input file exists.');
+    } else {
+      print('Input file does not exist.');
+      return null;
+    }
+
+    // Execute the FFmpeg command
+    await FFmpegKit.executeAsync(ffmpegCommand, (session) async {
+      final returnCode = await session.getReturnCode();
+
+      if (ReturnCode.isSuccess(returnCode)) {
+        print('Video exported successfully to $outputPath');
+        if (sendRecording) {
+          widget.onCropped(outputPath);
+          sendRecording = false;
+          _videoPaths.clear();
+        } else {
+          _croppedvideoPath = outputPath;
+        }
+        //await Share.shareXFiles([XFile(outputPath)]);
+
+        final outputFile = File(outputPath);
+        final now = DateTime.now();
+        await outputFile.setLastModified(now);
+        await outputFile.setLastAccessed(DateTime.now());
+      } else if (ReturnCode.isCancel(returnCode)) {
+        print('FFmpeg process was cancelled');
+      } else {
+        print('FFmpeg process failed with return code $returnCode');
+      }
+    }, (log) {
+      print('FFmpeg Log: ${log.getMessage()}');
+    });
+
+    // Check if the output file exists
+    final outputFile = File(outputPath);
+    if (await outputFile.exists()) {
+      return outputPath;
+    } else {
+      return null;
+    }
+  }
+
+  void saveFile(String? path) {
+    try {
+      if (_recordingStartTime == null) return;
+      debugPrint('Video saved: ${path}');
+      final Map<String, dynamic> videoDetails = {};
+      final recordingEndTime = DateTime.now();
+      final duration = recordingEndTime.difference(_recordingStartTime!);
+
+      // Step 1: Get basic details using video_player
+      final file = File(path ?? "");
+      final size = file.lengthSync(); // Get file size in bytes
+      videoDetails['size'] =
+          '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
+      print(videoDetails);
+      if (duration.inSeconds >= 2) {
+        debugPrint("Reach here duration");
+
+        setState(() {
+          if (_videoPaths.isEmpty) {
+            _videoPath = path;
+            sendOnLock();
+          } else {
+            _videoPaths.add(path ?? "");
+            sendOnLock();
+          }
+        });
+        exportCircularVideo(path ?? "");
+      } else {
+        debugPrint("Invalid duration ");
+        disposeOverlay();
+        cancelOnLock();
+      }
+    } catch (e) {
+      disposeOverlay();
+      cancelOnLock();
+    }
+  }
+
+  void stopVideoRecording({bool shouldDo = true}) async {
+    if (cameraController?.value?.isRecordingVideo == true) {
+      cameraController?.setFlashMode(Camera2.FlashMode.off);
+      final file = await cameraController?.stopVideoRecording();
+      if (shouldDo) {
+        saveFile(file?.path);
+      }
+    }
+  }
+
+  void startVideoRecording() async {
+    if (cameraController?.value?.isRecordingVideo != true) {
+      _recordingStartTime = DateTime.now();
+      sendRecording = false;
+      _croppedvideoPath = null;
+      _videoPath = null;
+      await cameraController?.startVideoRecording();
+      _recordingController.startRecording();
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    cameraController?.dispose();
+    super.dispose();
+  }
+
   void stopRecording() {
     isCurrentlyRecording = false;
     isValidDuration = _recordingController.isRecordingValid;
     lastRecord = _recordingController.stopRecording();
-    cameraController.stopRecording();
+    stopVideoRecording(shouldDo: false);
+    _videoPaths.clear();
+    _videoPath = null;
     lockObs = 0;
     buttonOffsetY = 0;
     buttonOffsetX = 0;
@@ -263,6 +483,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   double lockObs = 0;
   StateSetter? setStatee;
+  Duration? duration;
 
   // Implement a function to create OverlayEntry
   OverlayEntry getMyOverlayEntry({
@@ -275,327 +496,256 @@ class _CameraPageState extends State<VideNotebutton> {
       builder: (context) {
         return StatefulBuilder(builder: (context, setState2) {
           setStatee = setState2;
-          return (_videoPath != null)
-              ? Scaffold(
-                    body: Center(
-                      child: SizedBox(
-                        width: context.getWidth() * 0.9,
-                        height: context.getWidth() * 0.9,
-                        child: MiniVideoPlayerBetter(
-                          width: context.getWidth() * 0.85,
-                          height: context.getWidth() * 0.85,
-                          radius: context.getWidth() / 2.4,
-                          show: true,
-                          filePath: _videoPath!,
-                          autoPlay: true,
-                        ),
-                      ),
-                    ),
-                    floatingActionButtonLocation:
-                        FloatingActionButtonLocation.centerFloat,
-                    backgroundColor: Colors.white,
-                    bottomNavigationBar: Container(
-                      height: 100,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                              onPressed: () {
-                                cancelOnDone();
-                              },
-                              icon: const Icon(Icons.delete)),
-                          Text(
-                            "${lastRecord?.round()}s",
-                            style: const TextStyle(
-                                fontSize: 18, color: Colors.red),
-                          ),
-                          CircleAvatar(
-                            backgroundColor: const Color(0xFFFDD400),
-                            child: IconButton(
-                              onPressed: () {
-                                sendOnDone();
-                              },
-                              icon: const Icon(
-                                Icons.send,
-                                color: Colors.white,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  )
-              : Scaffold(
-                    body: Stack(
-                      children: [
-                        // if (isCurrentlyRecording)
-                        IgnorePointer(
-                          ignoring: !isCurrentlyRecording,
-                          // Disable interaction when not recording
-                          child: ValueListenableBuilder(
-                              valueListenable: buttonOffsetX2,
-                              builder: (context, value, child) {
-                                return OverlayScreen(
-                                  isRecording: isCurrentlyRecording,
-                                  recordingController: _recordingController,
-                                  isValidDuration: isValidDuration,
-                                  cameraController: cameraController,
-                                  lockObs: lockObs,
-                                  getFilePath: widget.getFilePath,
-                                  isLocked: isLocked,
-                                  onError: () {
-                                    cancelOnLock();
-                                  },
-                                  onStart: () {
-                                    debugPrint("start recording");
-                                    startRecording();
-                                  },
-                                  onDone: (String path) {
-                                    _videoPath = path;
-                                    debugPrint("OnDonePath is $_videoPath");
+          return BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+              child: (_videoPath != null)
+                  ? Scaffold(
+                      body: Center(
+                        child: SizedBox(
+                          width: context.getWidth() * 0.9,
+                          height: context.getWidth() * 0.9,
+                          child: _videoPaths.isEmpty
+                              ? MiniVideoPlayerBetter(
+                                  width: context.getWidth() * 0.85,
+                                  height: context.getWidth() * 0.85,
+                                  radius: context.getWidth() / 2.4,
+                                  onDuration: (durationn) {
+                                    setState2(() {
+                                      duration = durationn;
+                                    });
                                     setState(() {
-                                      sendOnLock();
+                                      duration = durationn;
+                                    });
+                                    setStatee?.call(() {
+                                      duration = durationn;
                                     });
                                   },
-                                  offset: value,
-                                  onCropped: (String path) {
-                                    if(sent.contains(path)) {
-                                      widget.onCropped(path);
-                                    }
-                                    else{
-                                      _croppedvideoPath = path;
-                                    }
+                                  show: true,
+                                  filePath: _videoPath!,
+                                  autoPlay: true,
+                                )
+                              : MiniVideoPlayerPlaylist(
+                                  width: context.getWidth() * 0.85,
+                                  height: context.getWidth() * 0.85,
+                                  radius: context.getWidth() / 2.4,
+                                  onDuration: (durationn) {
+                                    setState2(() {
+                                      duration = durationn;
+                                    });
+                                    setState(() {
+                                      duration = durationn;
+                                    });
+                                    setStatee?.call(() {
+                                      duration = durationn;
+                                    });
                                   },
-                                );
-                              }),
+                                  filePaths: _videoPaths!,
+                                  autoPlay: true,
+                                ),
                         ),
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: 60,
-                            color: Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 0, horizontal: 10.0),
-                              child: !isLocked
-                                  ? Stack(
-                                      children: [
-                                        AnimatedPositioned(
-                                            key: ValueKey(true),
-                                            duration: const Duration(
-                                                milliseconds: 500),
-                                            bottom: 0,
-                                            top: 0,
-                                            left: isCurrentlyRecording
-                                                ? 0
-                                                : MediaQuery.of(context)
-                                                    .size
-                                                    .width,
-                                            child:
-                                                ValueListenableBuilder<double>(
-                                              valueListenable:
-                                                  _recordingController
-                                                      .recordingDuration,
-                                              builder:
-                                                  (context, duration, child) {
-                                                return Row(
-                                                  children: [
-                                                    SvgPicture.asset(
-                                                      'packages/videonote/assets/recording.svg',
-                                                      width: 20,
-                                                      height: 20,
-                                                    ),
-                                                    const SizedBox(
-                                                      width: 10,
-                                                    ),
-                                                    Text(
-                                                      formatDuration(
-                                                          duration.round()),
-                                                      style: const TextStyle(
-                                                        fontSize: 18,
-                                                        color: Colors.red,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            )),
-                                        if (!isLocked) ...[
-                                          ValueListenableBuilder(
-                                              valueListenable: buttonOffsetX2,
-                                              builder: (context, value, child) {
-                                                return AnimatedPositioned(
-                                                  duration: const Duration(
-                                                      milliseconds: 500),
-                                                  left: 0,
-                                                  right: value.x.abs(),
-                                                  top: 0,
-                                                  bottom: 0,
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
+                      ),
+                      backgroundColor: Color(0xFF1F29377A).withOpacity(.5),
+                      bottomNavigationBar: Container(
+                        height: 100,
+                        color: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                                onPressed: () {
+                                  cancelOnDone();
+                                },
+                                icon: const Icon(Icons.delete)),
+                            Text(
+                              "${duration?.inSeconds ?? 0}s",
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.red),
+                            ),
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFFFDD400),
+                              child: IconButton(
+                                onPressed: () {
+                                  sendOnDone();
+                                },
+                                icon: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    )
+                  : Scaffold(
+                      body: Stack(
+                        children: [
+                          // if (isCurrentlyRecording)
+                          IgnorePointer(
+                            ignoring: !isCurrentlyRecording,
+                            // Disable interaction when not recording
+                            child: ValueListenableBuilder(
+                                valueListenable: buttonOffsetX2,
+                                builder: (context, value, child) {
+                                  return OverlayScreen(
+                                    isRecording: isCurrentlyRecording,
+                                    recordingController: _recordingController,
+                                    isValidDuration: isValidDuration,
+                                    cameraController: cameraController,
+                                    lockObs: lockObs,
+                                    flipCamera: (paths) {
+                                      _videoPaths.add(paths);
+                                    },
+                                    startedTime: _recordingStartTime,
+                                    cameras: _cameras,
+                                    getFilePath: widget.getFilePath,
+                                    isLocked: isLocked,
+                                    onError: () {
+                                      cancelOnLock();
+                                    },
+                                    onStart: () {
+                                      debugPrint("start recording");
+                                      startRecording();
+                                    },
+                                    onDone: (String path) {
+                                      sendRecording = false;
+                                      setState(() {});
+                                      stopVideoRecording();
+
+                                      // _videoPath = path;
+                                      // debugPrint("OnDonePath is $_videoPath");
+                                      // setState(() {
+                                      //   sendOnLock();
+                                      // });
+                                    },
+                                    offset: value,
+                                    onCropped: (String path) {
+                                      // if (sendRecording) {
+                                      //   widget.onCropped(path);
+                                      //   sendRecording = false;
+                                      // } else {
+                                      //   _croppedvideoPath = path;
+                                      // }
+                                    },
+                                  );
+                                }),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height: 60 + context.getBottomPadding(),
+                              color: Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                        vertical: 0, horizontal: 10.0)
+                                    .copyWith(
+                                        bottom: context.getBottomPadding()),
+                                child: !isLocked
+                                    ? Stack(
+                                        children: [
+                                          AnimatedPositioned(
+                                              key: ValueKey(true),
+                                              duration: const Duration(
+                                                  milliseconds: 500),
+                                              bottom: 0,
+                                              top: 0,
+                                              left: isCurrentlyRecording
+                                                  ? 0
+                                                  : MediaQuery.of(context)
+                                                      .size
+                                                      .width,
+                                              child: ValueListenableBuilder<
+                                                  double>(
+                                                valueListenable:
+                                                    _recordingController
+                                                        .recordingDuration,
+                                                builder:
+                                                    (context, duration, child) {
+                                                  return Row(
                                                     children: [
                                                       SvgPicture.asset(
-                                                        "packages/videonote/assets/delete.svg",
-                                                        width: 25,
-                                                        height: 25,
+                                                        'packages/videonote/assets/recording.svg',
+                                                        width: 20,
+                                                        height: 20,
                                                       ),
-                                                      const Text(
-                                                        "Slide to cancel",
-                                                        style: TextStyle(
-                                                            color: Color(
-                                                                0xFF475467)),
+                                                      const SizedBox(
+                                                        width: 10,
+                                                      ),
+                                                      Text(
+                                                        formatDuration(
+                                                            duration.round()),
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          color: Colors.red,
+                                                        ),
                                                       ),
                                                     ],
-                                                  ),
-                                                );
-                                              }),
-                                        ],
-                                        Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          top: 0,
-                                          child: ValueListenableBuilder(
-                                            valueListenable: buttonOffsetX2,
-                                            builder: (context, value, child) =>
-                                                Padding(
-                                              padding:
-                                                  const EdgeInsets.all(8.0),
-                                              child: AnimatedScale(
-                                                duration: const Duration(
-                                                    milliseconds: 100),
-                                                scale: isCurrentlyRecording
-                                                    ? scale
-                                                    : 1,
-                                                child: Transform.translate(
-                                                  offset:
-                                                      Offset(value.x, value.y),
-                                                  child: GestureDetector(
-                                                      onVerticalDragEnd:
-                                                          (details) {
-                                                        buttonOffsetY = details
-                                                            .localPosition.dy
-                                                            .clamp(
-                                                                -size.height *
-                                                                    0.2,
-                                                                0.0);
-                                                        if (buttonOffsetY <=
-                                                            (-size.height *
-                                                                0.1)) {
-                                                          setState(() {
-                                                            isLocked = true;
-                                                          });
-                                                          setStatee
-                                                              ?.call(() {});
-                                                        }
-                                                        //  reset drag mode
-                                                        setState(() {
-                                                          buttonOffsetY = 0.0;
-                                                          buttonOffsetX = 0.0;
-                                                          buttonOffsetX2.value =
-                                                              DragValue(
-                                                                  x: buttonOffsetX,
-                                                                  y: buttonOffsetY);
-                                                          scale = defScale;
-                                                          setStatee
-                                                              ?.call(() {});
-                                                          if (!_recordingController
-                                                              .isRecordingValid) {
-                                                            cancelOnLock();
-                                                          } else {
-                                                            if (!isLocked) {
-                                                              try {
-                                                                cameraController
-                                                                    .stopRecording();
-                                                                _recordingController
-                                                                    .pauseRecording();
-                                                              } catch (e) {
-                                                                debugPrint(e
-                                                                    .toString());
-                                                              }
-                                                            }
-                                                          }
-                                                        });
-                                                      },
-                                                      onVerticalDragUpdate:
-                                                          (details) {
-                                                        debugPrint(
-                                                            "moving ${details.delta.dy}");
-                                                        setState(() {
-                                                          // Dragging up: only allow up movement or return to 0
-                                                          if (buttonOffsetX >=
-                                                              -5) {
-                                                            if (details.delta
-                                                                        .dy <
-                                                                    0 ||
-                                                                buttonOffsetY <
-                                                                    0) {
-                                                              buttonOffsetX = 0;
-                                                              buttonOffsetY = details
-                                                                  .delta.dy
-                                                                  .clamp(
-                                                                      -size.height *
-                                                                          0.2,
-                                                                      0.0);
-
-                                                              debugPrint("Y: " +
-                                                                  buttonOffsetY
-                                                                      .toString());
-                                                              debugPrint("Height " +
-                                                                  (size.height *
-                                                                          0.2)
-                                                                      .toString());
-
-                                                              // Scale decreases as the button moves up and increases as it moves down
-                                                              scale = (defScale -
-                                                                      (buttonOffsetY
-                                                                              .abs() /
-                                                                          (size.height *
-                                                                              0.2)))
-                                                                  .abs();
-                                                              scale = scale.clamp(
-                                                                  0.3,
-                                                                  defScale); // Clamp scale between 1.0 and 1.5
-
-                                                              buttonOffsetX2
-                                                                      .value =
-                                                                  DragValue(
-                                                                      x: buttonOffsetX,
-                                                                      y: buttonOffsetY);
-                                                            }
-                                                            setStatee
-                                                                ?.call(() {});
-                                                          }
-
-                                                          // Dragging left: only allow left movement or return to 0
-                                                          if (buttonOffsetY
-                                                                  .abs() <=
-                                                              5.0) {
-                                                            if (details.delta
-                                                                        .dx <
-                                                                    0 ||
-                                                                buttonOffsetX <
-                                                                    0) {
-                                                              buttonOffsetY = 0;
-                                                              buttonOffsetX = details
-                                                                  .delta.dx
-                                                                  .clamp(
-                                                                      -size.width *
-                                                                          0.5,
-                                                                      0.0);
-                                                              buttonOffsetX2
-                                                                      .value =
-                                                                  DragValue(
-                                                                      x: buttonOffsetX,
-                                                                      y: buttonOffsetY);
-                                                            }
-                                                            setStatee
-                                                                ?.call(() {});
-                                                          }
-
-                                                          // Trigger actions based on drag thresholds
+                                                  );
+                                                },
+                                              )),
+                                          if (!isLocked) ...[
+                                            ValueListenableBuilder(
+                                                valueListenable: buttonOffsetX2,
+                                                builder:
+                                                    (context, value, child) {
+                                                  return AnimatedPositioned(
+                                                    duration: const Duration(
+                                                        milliseconds: 500),
+                                                    left: 0,
+                                                    right: value.x.abs(),
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        SvgPicture.asset(
+                                                          "packages/videonote/assets/delete.svg",
+                                                          width: 25,
+                                                          height: 25,
+                                                        ),
+                                                        const Text(
+                                                          "Slide to cancel",
+                                                          style: TextStyle(
+                                                              color: Color(
+                                                                  0xFF475467)),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }),
+                                          ],
+                                          Positioned(
+                                            right: 0,
+                                            bottom: 0,
+                                            top: 0,
+                                            child: ValueListenableBuilder(
+                                              valueListenable: buttonOffsetX2,
+                                              builder:
+                                                  (context, value, child) =>
+                                                      Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: AnimatedScale(
+                                                  duration: const Duration(
+                                                      milliseconds: 100),
+                                                  scale: isCurrentlyRecording
+                                                      ? scale
+                                                      : 1,
+                                                  child: Transform.translate(
+                                                    offset: Offset(
+                                                        value.x, value.y),
+                                                    child: GestureDetector(
+                                                        onVerticalDragEnd:
+                                                            (details) {
+                                                          buttonOffsetY = details
+                                                              .localPosition.dy
+                                                              .clamp(
+                                                                  -size.height *
+                                                                      0.2,
+                                                                  0.0);
                                                           if (buttonOffsetY <=
                                                               (-size.height *
                                                                   0.1)) {
@@ -605,110 +755,234 @@ class _CameraPageState extends State<VideNotebutton> {
                                                             setStatee
                                                                 ?.call(() {});
                                                           }
-                                                          if (buttonOffsetX
-                                                                  .abs() >=
-                                                              size.width *
-                                                                  0.3) {
-                                                            stopRecording();
+                                                          //  reset drag mode
+                                                          setState(() {
+                                                            buttonOffsetY = 0.0;
+                                                            buttonOffsetX = 0.0;
+                                                            buttonOffsetX2
+                                                                    .value =
+                                                                DragValue(
+                                                                    x: buttonOffsetX,
+                                                                    y: buttonOffsetY);
+                                                            scale = defScale;
                                                             setStatee
                                                                 ?.call(() {});
-                                                          }
-                                                        });
-                                                      },
-                                                      child: Container(
-                                                        decoration: BoxDecoration(
-                                                            color: isCurrentlyRecording
-                                                                ? Colors.red
-                                                                : const Color(
-                                                                    0x2A767680),
-                                                            shape: BoxShape
-                                                                .circle),
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(5),
-                                                        child: SvgPicture.asset(
-                                                          "packages/videonote/assets/camera_icon.svg",
-                                                          key: ValueKey<bool>(
-                                                              isCurrentlyRecording),
-                                                          width: 30,
-                                                          colorFilter: ColorFilter.mode(
-                                                              isCurrentlyRecording
-                                                                  ? Colors.white
+                                                            if (!_recordingController
+                                                                .isRecordingValid) {
+                                                              cancelOnLock();
+                                                            } else {
+                                                              if (!isLocked) {
+                                                                try {
+                                                                  stopVideoRecording();
+                                                                  _recordingController
+                                                                      .pauseRecording();
+                                                                } catch (e) {
+                                                                  debugPrint(e
+                                                                      .toString());
+                                                                }
+                                                              }
+                                                            }
+                                                          });
+                                                        },
+                                                        onVerticalDragUpdate:
+                                                            (details) {
+                                                          debugPrint(
+                                                              "moving ${details.delta.dy}");
+                                                          setState(() {
+                                                            // Dragging up: only allow up movement or return to 0
+                                                            if (buttonOffsetX >=
+                                                                -5) {
+                                                              if (details.delta
+                                                                          .dy <
+                                                                      0 ||
+                                                                  buttonOffsetY <
+                                                                      0) {
+                                                                buttonOffsetX =
+                                                                    0;
+                                                                buttonOffsetY = details
+                                                                    .delta.dy
+                                                                    .clamp(
+                                                                        -size.height *
+                                                                            0.2,
+                                                                        0.0);
+
+                                                                debugPrint("Y: " +
+                                                                    buttonOffsetY
+                                                                        .toString());
+                                                                debugPrint("Height " +
+                                                                    (size.height *
+                                                                            0.2)
+                                                                        .toString());
+
+                                                                // Scale decreases as the button moves up and increases as it moves down
+                                                                scale = (defScale -
+                                                                        (buttonOffsetY.abs() /
+                                                                            (size.height *
+                                                                                0.2)))
+                                                                    .abs();
+                                                                scale = scale.clamp(
+                                                                    0.3,
+                                                                    defScale); // Clamp scale between 1.0 and 1.5
+
+                                                                buttonOffsetX2
+                                                                        .value =
+                                                                    DragValue(
+                                                                        x: buttonOffsetX,
+                                                                        y: buttonOffsetY);
+                                                              }
+                                                              setStatee
+                                                                  ?.call(() {});
+                                                            }
+
+                                                            // Dragging left: only allow left movement or return to 0
+                                                            if (buttonOffsetY
+                                                                    .abs() <=
+                                                                5.0) {
+                                                              if (details.delta
+                                                                          .dx <
+                                                                      0 ||
+                                                                  buttonOffsetX <
+                                                                      0) {
+                                                                buttonOffsetY =
+                                                                    0;
+                                                                buttonOffsetX = details
+                                                                    .delta.dx
+                                                                    .clamp(
+                                                                        -size.width *
+                                                                            0.5,
+                                                                        0.0);
+                                                                buttonOffsetX2
+                                                                        .value =
+                                                                    DragValue(
+                                                                        x: buttonOffsetX,
+                                                                        y: buttonOffsetY);
+                                                              }
+                                                              setStatee
+                                                                  ?.call(() {});
+                                                            }
+
+                                                            // Trigger actions based on drag thresholds
+                                                            if (buttonOffsetY <=
+                                                                (-size.height *
+                                                                    0.1)) {
+                                                              setState(() {
+                                                                isLocked = true;
+                                                              });
+                                                              setStatee
+                                                                  ?.call(() {});
+                                                            }
+                                                            if (buttonOffsetX
+                                                                    .abs() >=
+                                                                size.width *
+                                                                    0.3) {
+                                                              stopRecording();
+                                                              setStatee
+                                                                  ?.call(() {});
+                                                            }
+                                                          });
+                                                        },
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                              color: isCurrentlyRecording
+                                                                  ? Colors.red
                                                                   : const Color(
-                                                                      0xFF858E99),
-                                                              BlendMode.srcIn),
-                                                          height: 30,
-                                                        ),
-                                                      )),
+                                                                      0x2A767680),
+                                                              shape: BoxShape
+                                                                  .circle),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(5),
+                                                          child:
+                                                              SvgPicture.asset(
+                                                            "packages/videonote/assets/camera_icon.svg",
+                                                            key: ValueKey<bool>(
+                                                                isCurrentlyRecording),
+                                                            width: 30,
+                                                            colorFilter: ColorFilter.mode(
+                                                                isCurrentlyRecording
+                                                                    ? Colors
+                                                                        .white
+                                                                    : const Color(
+                                                                        0xFF858E99),
+                                                                BlendMode
+                                                                    .srcIn),
+                                                            height: 30,
+                                                          ),
+                                                        )),
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    )
-                                  : Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        IconButton(
-                                          padding: EdgeInsets.zero,
-                                          onPressed: () {
-                                            cancelOnLock();
-                                          },
-                                          icon: SvgPicture.asset(
-                                            "packages/videonote/assets/delete.svg",
-                                            width: 25,
-                                            height: 25,
-                                          ),
-                                        ),
-                                        Spacer(),
-                                        ValueListenableBuilder<double>(
-                                          valueListenable: _recordingController
-                                              .recordingDuration,
-                                          builder: (context, duration, child) {
-                                            return Row(
-                                              children: [
-                                                Text(
-                                                  formatDuration(
-                                                      duration.round()),
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        ),
-                                        Spacer(),
-                                        GestureDetector(
-                                          onTap: () {
-                                            _recordingController
-                                                .pauseRecording();
-                                            cameraController.stopRecording();
-                                            sendOnDone();
-                                          },
-                                          child: const CircleAvatar(
-                                            backgroundColor: Color(0xFFFDD400),
-                                            child: Icon(
-                                              Icons.send,
-                                              color: Colors.white,
+                                        ],
+                                      )
+                                    : Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          IconButton(
+                                            padding: EdgeInsets.zero,
+                                            onPressed: () {
+                                              cancelOnLock();
+                                            },
+                                            icon: SvgPicture.asset(
+                                              "packages/videonote/assets/delete.svg",
+                                              width: 25,
+                                              height: 25,
                                             ),
                                           ),
-                                        )
-                                      ],
-                                    ),
+                                          Spacer(),
+                                          ValueListenableBuilder<double>(
+                                            valueListenable:
+                                                _recordingController
+                                                    .recordingDuration,
+                                            builder:
+                                                (context, duration, child) {
+                                              return Row(
+                                                children: [
+                                                  Text(
+                                                    formatDuration(
+                                                        duration.round()),
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                          Spacer(),
+                                          GestureDetector(
+                                            onTap: () {
+                                              _recordingController
+                                                  .pauseRecording();
+                                              stopVideoRecording();
+                                            },
+                                            child: const CircleAvatar(
+                                              backgroundColor:
+                                                  Color(0xFFFDD400),
+                                              child: Icon(
+                                                Icons.send,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                              ),
                             ),
-                          ),
-                        )
-                      ],
-                    ),
-                );
+                          )
+                        ],
+                      ),
+                      backgroundColor: Colors.transparent,
+                    ));
         });
       },
     );
   }
+
+  late List<Camera2.CameraDescription> _cameras;
 
   StreamController<double> postionStream = StreamController<double>();
 
@@ -732,6 +1006,7 @@ class _CameraPageState extends State<VideNotebutton> {
       _hasPermission = hasPermission;
     });
   }
+
   Future<bool> requestCameraPermission() async {
     final cameraStatus = await Permission.camera.status;
     final microphoneStatus = await Permission.microphone.status;
@@ -739,10 +1014,8 @@ class _CameraPageState extends State<VideNotebutton> {
     // If both permissions are already granted
     if (cameraStatus.isGranted && microphoneStatus.isGranted) {
       debugPrint("Permissions already granted");
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Vibration.vibrate(duration: 500, amplitude: 255);
-        _showOverlayWithGesture(context);
-      });
+      Vibration.vibrate(duration: 500, amplitude: 255);
+      _showOverlayWithGesture(context);
       return false;
     }
 
@@ -755,7 +1028,8 @@ class _CameraPageState extends State<VideNotebutton> {
     }
 
     // If permissions are denied or restricted, guide the user to settings
-    if (cameraRequest.isPermanentlyDenied || microphoneRequest.isPermanentlyDenied) {
+    if (cameraRequest.isPermanentlyDenied ||
+        microphoneRequest.isPermanentlyDenied) {
       debugPrint("Permissions denied. Directing user to settings.");
       await showDialog(
         context: context,
@@ -780,8 +1054,7 @@ class _CameraPageState extends State<VideNotebutton> {
           ],
         ),
       );
-    }
-    else{
+    } else {
       final opened = await openAppSettings(); // Opens the app settings
       if (!opened) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -792,7 +1065,6 @@ class _CameraPageState extends State<VideNotebutton> {
 
     return false;
   }
-
 
   @override
   Widget build(BuildContext contexts) {
@@ -805,7 +1077,7 @@ class _CameraPageState extends State<VideNotebutton> {
         onWillPop: () async {
           debugPrint("pop here");
           if (isCurrentlyRecording) {
-            cameraController.stopRecording();
+            stopVideoRecording();
             _recordingController.stopRecording();
             cancelOnDone();
             return false;
@@ -849,6 +1121,7 @@ class _CameraPageState extends State<VideNotebutton> {
           onLongPressStart: (details) async {
             final isGranted = await requestCameraPermission();
             if (isGranted) {
+              debugPrint("started");
               Vibration.vibrate(duration: 500, amplitude: 255);
               _showOverlayWithGesture(context);
             }
@@ -859,9 +1132,9 @@ class _CameraPageState extends State<VideNotebutton> {
               // Dragging up: only allow up movement or return to 0
               if (buttonOffsetX >= -5) {
                 if (details.localOffsetFromOrigin.dy < 0 || buttonOffsetY < 0) {
-                  final newY =  details.localOffsetFromOrigin.dy
-                  .clamp(-size.height * 0.2, 0.0);
-                  if(newY==buttonOffsetY) return;
+                  final newY = details.localOffsetFromOrigin.dy
+                      .clamp(-size.height * 0.2, 0.0);
+                  if (newY == buttonOffsetY) return;
                   buttonOffsetX = 0;
                   buttonOffsetY = details.localOffsetFromOrigin.dy
                       .clamp(-size.height * 0.2, 0.0);
@@ -885,9 +1158,9 @@ class _CameraPageState extends State<VideNotebutton> {
               // Dragging left: only allow left movement or return to 0
               if (buttonOffsetY.abs() <= 5.0) {
                 if (details.localOffsetFromOrigin.dx < 0 || buttonOffsetX < 0) {
-                  final newX =  details.localOffsetFromOrigin.dx
+                  final newX = details.localOffsetFromOrigin.dx
                       .clamp(-size.width * 0.5, 0.0);
-                  if(newX==buttonOffsetX) return;
+                  if (newX == buttonOffsetX) return;
                   buttonOffsetY = 0;
                   buttonOffsetX = details.localOffsetFromOrigin.dx
                       .clamp(-size.width * 0.5, 0.0);
@@ -926,13 +1199,13 @@ class _CameraPageState extends State<VideNotebutton> {
               scale = defScale;
               setStatee?.call(() {});
               if (!_recordingController.isRecordingValid) {
-                if(!isLocked) {
+                if (!isLocked) {
                   cancelOnLock();
                 }
               } else {
                 if (!isLocked) {
                   try {
-                    cameraController.stopRecording();
+                    stopVideoRecording(shouldDo: true);
                     _recordingController.pauseRecording();
                   } catch (e) {
                     debugPrint(e.toString());

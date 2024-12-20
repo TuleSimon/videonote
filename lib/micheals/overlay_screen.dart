@@ -5,10 +5,12 @@ import 'dart:ui';
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/main.dart';
 import 'package:flutter/foundation.dart';
-import 'package:videonote/micheals/timer_controller.dart';
-import 'package:videonote/micheals/widgets/video_processor.dart';
+import 'package:camera/camera.dart' as Camera2;
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
+import 'package:camera/camera.dart';
+import 'package:videonote/micheals/timer_controller.dart';
+import 'package:videonote/micheals/widgets/video_processor.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/return_code.dart';
 import 'package:flutter/material.dart';
@@ -20,27 +22,34 @@ import 'package:uuid/uuid.dart';
 
 import 'hole_widget.dart';
 
+
+
 class OverlayScreen extends StatefulWidget {
   const OverlayScreen(
       {super.key,
       required this.cameraController,
       required this.onDone,
       required this.offset,
+        required this.cameras,
       required this.onCropped,
       required this.onError,
+      required this.flipCamera,
       required this.isLocked,
       required this.isRecording,
       required this.lockObs,
       required this.onStart,
+      required this.startedTime,
       required this.getFilePath,
       required this.isValidDuration,
       required this.recordingController});
 
-  final CameraController cameraController;
+  final Camera2.CameraController? cameraController;
+  final List<Camera2.CameraDescription> cameras;
   final RecordingController recordingController;
   final Function(String path) onDone;
   final  Future<File>  Function(String) getFilePath;
   final Function(String path) onCropped;
+  final Function(String path) flipCamera;
   final Function() onError;
   final Function() onStart;
   final bool isValidDuration;
@@ -48,6 +57,7 @@ class OverlayScreen extends StatefulWidget {
   final DragValue offset;
   final double lockObs;
   final bool isRecording;
+  final DateTime? startedTime;
 
   @override
   State<OverlayScreen> createState() => _OverlayScreenState();
@@ -161,6 +171,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
       return null;
     }
 
+
+
     // Execute the FFmpeg command
     await FFmpegKit.executeAsync(ffmpegCommand, (session) async {
       final returnCode = await session.getReturnCode();
@@ -195,6 +207,37 @@ class _OverlayScreenState extends State<OverlayScreen> {
   Future<String?> exportCVideo(String iP) async {
     VideoProcessor videoProcessor = VideoProcessor();
     return await videoProcessor.processVideo(iP);
+  }
+
+  void saveFile(String? path) {
+    try {
+      debugPrint('Video saved: ${path}');
+      final Map<String, dynamic> videoDetails = {};
+      final recordingEndTime = DateTime.now();
+      final duration = recordingEndTime.difference(widget.startedTime!);
+
+      // Step 1: Get basic details using video_player
+      final file = File(path ?? "");
+      final size = file.lengthSync(); // Get file size in bytes
+      videoDetails['size'] =
+      '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
+      print(videoDetails);
+      if (duration.inSeconds >= 2) {
+        debugPrint("Reach here duration");
+        widget.onDone(file.path);
+        exportCircularVideo(path ?? "");
+
+        setState(() {
+          _videoPath = path;
+        });
+      } else {
+        debugPrint("Invalid duration ${isRecordingValid}");
+        widget.onError();
+      }
+    }
+    catch(e){
+      widget.onError();
+    }
   }
 
   void _handleMediaCaptureEvent(MediaCapture event) {
@@ -256,7 +299,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
   bool switching = false;
 
   void init() async {
-    await Future.delayed(Duration(seconds: 2));
     widget.onStart();
   }
 
@@ -269,9 +311,9 @@ class _OverlayScreenState extends State<OverlayScreen> {
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+      filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
       child: Scaffold(
-        backgroundColor: Colors.black.withOpacity(.7),
+        backgroundColor: Color(0xFF1F29377A).withOpacity(.5),
         body: Container(
           color: Colors.transparent,
           width: MediaQuery.sizeOf(context).width,
@@ -284,39 +326,10 @@ class _OverlayScreenState extends State<OverlayScreen> {
                     Center(
                       child: HoleWidget(
                         radius: context.getWidth() / 2.35,
-                        child: AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: CameraAwesomeBuilder.awesome(
-                            onMediaCaptureEvent: _handleMediaCaptureEvent,
-                            saveConfig: SaveConfig.video(
-                              videoOptions: VideoOptions(
-                                enableAudio: true,
-                                quality: VideoRecordingQuality.sd,
-                                ios: CupertinoVideoOptions(
-                                  fps: 30,
-                                  fileType: CupertinoFileType.mpeg4,
-                                  codec: CupertinoCodecType.hevc,
-                                ),
-                                android: AndroidVideoOptions(
-                                  bitrate: 800000,
-                                  fallbackStrategy:
-                                      QualityFallbackStrategy.lower,
-                                ),
-                              ),
-                            ),
-                            sensorConfig: SensorConfig.single(
-                              sensor: Sensor.position(SensorPosition.front),
-                              flashMode: FlashMode.auto,
-                              aspectRatio: CameraAspectRatios.ratio_1_1,
-                              zoom: 0.0,
-                            ),
-                            enablePhysicalButton: true,
-                            previewAlignment: Alignment.center,
-                            previewFit: CameraPreviewFit.fitWidth,
-                            controller:
-                                widget.cameraController, // Pass the controller
-                          ),
-                        ),
+                        child: widget.cameraController?.value.isInitialized !=
+                                true
+                            ? Container()
+                            : Camera2.CameraPreview(widget.cameraController!),
                       ),
                     ),
                     Center(
@@ -350,38 +363,91 @@ class _OverlayScreenState extends State<OverlayScreen> {
                         const SizedBox(width: 10),
                         GestureDetector(
                           onTap: () async {
-                            await widget.cameraController.toggleFlash();
-                            setState(
-                                () {}); // Update the UI to reflect the flash mode change
+                            if (widget.cameraController != null) {
+                              if (widget.cameraController!.value.flashMode !=
+                                  Camera2.FlashMode.always) {
+                                await widget.cameraController!
+                                    .setFlashMode(Camera2.FlashMode.off);
+                              } else {
+                                await widget.cameraController!
+                                    .setFlashMode(Camera2.FlashMode.always);
+                              }
+                              setState(
+                                  () {}); // Update the UI to reflect the flash mode change
+                            }
                           },
                           child: CircleAvatar(
                               backgroundColor: Colors.white,
                               child: Center(
-                                child:
-                                    widget.cameraController.currentFlashMode !=
-                                            FlashMode.always
-                                        ? Icon(widget.cameraController
-                                                    .currentFlashMode ==
-                                                FlashMode.on
+                                child: widget.cameraController != null
+                                    ? widget.cameraController!.value
+                                                .flashMode !=
+                                            Camera2.FlashMode.always
+                                        ? Icon(widget.cameraController!.value
+                                                    .flashMode ==
+                                                Camera2.FlashMode.always
                                             ? Icons.flash_on
                                             : Icons.flash_auto)
                                         : SvgPicture.asset(
                                             "packages/videonote/assets/flash_icon.svg",
                                             width: 25,
-                                          ),
+                                          )
+                                    : SizedBox(),
                               )),
                         ),
 
                         const SizedBox(width: 10),
                         GestureDetector(
                             onTap: () async {
-                              try {
-                                switching = true;
-                                widget.cameraController.stopRecording();
-                                setState(() {});
-                                await widget.cameraController.switchCamera();
-                                await widget.cameraController.startRecording();
-                              } catch (e) {}
+                              if (widget.cameraController != null) {
+                                try {
+                                  if (widget.cameras.isEmpty) {
+                                    print(
+                                        "No cameras available or controller is not initialized.");
+                                    return;
+                                  }
+
+                                  // Determine the current camera's lens direction
+                                  final currentLensDirection = widget
+                                      .cameraController!
+                                      .description
+                                      .lensDirection;
+
+                                  // Find the camera with the opposite lens direction
+                                  final newCamera = widget.cameras.firstWhere(
+                                    (camera) =>
+                                        camera.lensDirection ==
+                                        (currentLensDirection ==
+                                                CameraLensDirection.front
+                                            ? CameraLensDirection.back
+                                            : CameraLensDirection.front),
+                                    orElse: () => widget.cameras[
+                                        0], // Fallback to the first camera if no opposite is found
+                                  );
+
+                                  //Stop recording if it is active
+                                  // if (widget.cameraController!.value
+                                  //     .isRecordingVideo) {
+                                  // final file =   await widget.cameraController!
+                                  //       .stopVideoRecording();
+                                  // widget.flipCamera(file.path);
+                                  //   print("Stopped current recording.");
+                                  // }
+                                  final currentDescription =
+                                      widget.cameraController!.description;
+                                  final otherCameras = widget.cameras
+                                      .firstWhere(
+                                          (re) => re != currentDescription);
+                                  debugPrint(newCamera.lensDirection.toString());
+                                  await widget.cameraController!
+                                      .setDescription(otherCameras);
+                                  await widget.cameraController!.initialize();
+                                    await widget.cameraController!
+                                        .startVideoRecording();
+                                } catch (e) {
+                                  debugPrint(e.toString());
+                                }
+                              }
                             },
                             child: CircleAvatar(
                               backgroundColor: Colors.white,
@@ -399,13 +465,20 @@ class _OverlayScreenState extends State<OverlayScreen> {
                       children: [
                         widget.isLocked
                             ? InkWell(
-                                onTap: () {
-                                  switching = false;
-                                  isRecordingValid = widget
-                                      .recordingController.isRecordingValid;
-                                  widget.cameraController.stopRecording();
-                                  widget.recordingController.pauseRecording();
-                                  setState(() {});
+                                onTap: () async {
+                                  try {
+                                    isRecordingValid = widget
+                                        .recordingController.isRecordingValid;
+                                    // final file = await widget.cameraController
+                                    //     ?.stopVideoRecording();
+                                    // widget.recordingController.pauseRecording();
+                                    // saveFile(file?.path);
+                                    // setState(() {});
+                                    widget.onDone("");
+                                  }
+                                  catch(e){
+
+                                  }
                                 },
                                 child: CircleAvatar(
                                     backgroundColor: const Color(0xFFD92D20),
@@ -475,8 +548,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
                   ],
                 ),
               ),
-              const SizedBox(
-                height: 50,
+               SizedBox(
+                height: 50+ context.getBottomPadding(),
               ),
             ],
           ),

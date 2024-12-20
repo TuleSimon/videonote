@@ -16,6 +16,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
   final double radius;
   final Function()? onPlay;
   final Function()? onPause;
+  final Function(Duration)? onDuration;
 
   const MiniVideoPlayerBetter({
     super.key,
@@ -27,6 +28,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
     this.height = 200,
     this.radius = 200,
     this.tapped,
+    this.onDuration,
     this.onPause,
   });
 
@@ -69,6 +71,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     _duration =
                         _controller?.videoPlayerController?.value.duration ??
                             const Duration();
+                    widget.onDuration?.call(_duration);
                     _controller?.videoPlayerController?.addListener(
                         playListener);
                     if (widget.tapped != null && widget.tapped != true) {
@@ -137,6 +140,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   void playListener() {
+    if(mounted)
     setState(() {
       if (_currentProgress > 0.5) {
         final isVideoEnded =
@@ -160,9 +164,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void dispose() {
     try {
-      _controller?.pause();
-      _controller?.videoPlayerController?.dispose();
-      _controller?.dispose();
+      //_controller?.pause();
+    //  _controller?.videoPlayerController?.dispose();
+     // _controller?.dispose();
     }
     catch (e) {
       debugPrint(e.toString());
@@ -221,9 +225,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   Widget build(BuildContext context) {
     if (_controller == null || _controller?.isVideoInitialized() != true) {
-      return const FractionallySizedBox(
-          widthFactor: 0.5,
-          heightFactor: 0.5,
+      return  SizedBox(
+          width:widget.width,
+          height: widget.height,
           child: CircularProgressIndicator(
             color: Colors.amber,
           ));
@@ -306,10 +310,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     )),
               if (widget.show)
                 Positioned(
-                    left: -3,
-                    right: -3,
-                    top: -3,
-                    bottom: -3,
+                    left: -1,
+                    right: -1,
+                    top: -1,
+                    bottom: -1,
                     child: CustomPaint(
                       size: Size(widget.width, widget.height),
                       painter: CircularProgressPainter(

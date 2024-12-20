@@ -59,6 +59,8 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       home: Scaffold(
+        appBar: AppBar(title: Text("VideoNotes"),),
+        backgroundColor: Colors.amber,
         bottomNavigationBar: BottomAppBar(
           child: Row(
             children: [
@@ -94,6 +96,7 @@ class _MyAppState extends State<MyApp> {
               ),
               VideNotebutton(
                   onAddFile: (file) async {
+                    debugPrint("here $file");
                     recording.add(file);
                     setState(() {});
                   },
@@ -112,6 +115,7 @@ class _MyAppState extends State<MyApp> {
                     return File(outputPath);
                   },
                   onCropped: (file) async {
+                    debugPrint("here cropped $file");
                     recording.add(file);
                     setState(() {});
                   },
