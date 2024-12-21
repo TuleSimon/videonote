@@ -987,8 +987,14 @@ class _CameraPageState extends State<VideNotebutton> {
                                                 (context, duration, child) {
                                               return Row(
                                                 children: [
+                                                  if(isRecordingPaused)
+                                                  SvgPicture.asset(
+                                                    "packages/videonote/assets/pause.svg",
+                                                    width: 25,
+                                                    height: 25,
+                                                  ),
                                                   Text(
-                                                    _recordingStartTime?.getDuration()??"0",
+                                                    isRecordingPaused?"Recording paused":_recordingStartTime?.getDuration()??"0",
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       color: Colors.black,
@@ -1332,9 +1338,9 @@ extension durationUtils on DateTime{
 String formatDurationToCustomFormat(Duration duration) {
   // Get the hour, minute, and second parts
   String hours = duration.inHours.toString().padLeft(2, '0');
-  String minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+  String minutes = (duration.inMinutes % 60).toString().padLeft(1, '0');
   String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
 
   // Format the string
-  return "$hours:$minutes:$seconds";
+  return "$minutes:$seconds";
 }
