@@ -113,7 +113,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
               }),
           betterPlayerDataSource: BetterPlayerDataSource(
               BetterPlayerDataSourceType.file, widget.filePath),
-        );
+        )..setVolume(0);
       } else {
         debugPrint("Invalid file path");
       }
@@ -123,6 +123,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   void onVisibilityChanged(double visibleFraction) async {
+    if(!mounted) return;
     bool isPlaying = (_controller!.isPlaying()) == true;
     bool initialized = _controller!.isVideoInitialized() == true;
     if (visibleFraction >= 0.5) {
@@ -141,25 +142,27 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   void playListener() {
-    if(mounted)
-    setState(() {
-      if (_currentProgress > 0.5) {
-        final isVideoEnded =
-            (_controller?.videoPlayerController?.value.position ??
-                Duration(seconds: 0)) >=
-                (Duration(
-                    milliseconds: (_controller?.videoPlayerController?.value
-                        .duration?.inMilliseconds ??
-                        1) -
-                        100));
-        // debugPrint("Video edned " + isVideoEnded.toString());
-        if (isVideoEnded) {
-          _currentProgress = 0;
+    if(mounted) {
+      setState(() {
+        if (_currentProgress > 0.5) {
+          final isVideoEnded =
+              (_controller?.videoPlayerController?.value.position ??
+                  Duration(seconds: 0)) >=
+                  (Duration(
+                      milliseconds: (_controller?.videoPlayerController?.value
+                          .duration?.inMilliseconds ??
+                          1) -
+                          100));
+          // debugPrint("Video edned " + isVideoEnded.toString());
+          if (isVideoEnded) {
+            _currentProgress = 0;
+          }
         }
-      }
 
-      _isPlaying = _controller?.videoPlayerController?.value.isPlaying ?? false;
-    });
+        _isPlaying =
+            _controller?.videoPlayerController?.value.isPlaying ?? false;
+      });
+    }
   }
 
   @override
