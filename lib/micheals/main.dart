@@ -987,14 +987,16 @@ class _CameraPageState extends State<VideNotebutton> {
                                                 (context, duration, child) {
                                               return Row(
                                                 children: [
-                                                  if(isRecordingPaused)
+                                                  if(isRecordingPaused)...[
                                                   SvgPicture.asset(
                                                     "packages/videonote/assets/pause.svg",
-                                                    width: 25,
-                                                    height: 25,
+                                                    colorFilter: ColorFilter.mode(Colors.black, BlendMode.srcIn),
+                                                    width: 22,
+                                                    height: 22,
                                                   ),
+                                                  SizedBox(width: 5)],
                                                   Text(
-                                                    isRecordingPaused?"Recording paused":_recordingStartTime?.getDuration()??"0",
+                                                    isRecordingPaused?"Recording paused":formatDuration(duration.round()),
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       color: Colors.black,
