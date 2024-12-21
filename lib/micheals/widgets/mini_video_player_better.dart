@@ -65,6 +65,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                 onVisibilityChanged(visibility);
               },
               eventListener: (event) {
+                if(!mounted) return;
                 if (event.betterPlayerEventType ==
                     BetterPlayerEventType.initialized) {
                   setState(() {
@@ -164,9 +165,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void dispose() {
     try {
-      //_controller?.pause();
-    //  _controller?.videoPlayerController?.dispose();
-     // _controller?.dispose();
+      _controller?.pause();
+     _controller?.videoPlayerController?.dispose();
+     _controller?.dispose();
     }
     catch (e) {
       debugPrint(e.toString());

@@ -36,6 +36,7 @@ class OverlayScreen extends StatefulWidget {
       required this.flipCamera,
       required this.isLocked,
       required this.isRecording,
+      required this.isRecordingPaused,
       required this.lockObs,
       required this.onStart,
       required this.startedTime,
@@ -53,6 +54,7 @@ class OverlayScreen extends StatefulWidget {
   final Function() onError;
   final Function() onStart;
   final bool isValidDuration;
+  final bool isRecordingPaused;
   final bool isLocked;
   final DragValue offset;
   final double lockObs;
@@ -427,7 +429,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
                                //   Stop recording if it is active
                                   if (widget.cameraController!.value
-                                      .isRecordingVideo) {
+                                      .isRecordingVideo || widget.cameraController!.value.isRecordingPaused) {
                                   final file =   await widget.cameraController!.stopVideoRecording();
                                   widget.flipCamera(file.path);
                                     print("Stopped current recording.");
@@ -443,6 +445,10 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                   await widget.cameraController!.initialize();
                                     await widget.cameraController!
                                         .startVideoRecording();
+                                    if(widget.isRecordingPaused){
+                                      await widget.cameraController!
+                                          .pauseVideoRecording();
+                                    }
                                 } catch (e) {
                                   debugPrint(e.toString());
                                 }
@@ -468,11 +474,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                   try {
                                     isRecordingValid = widget
                                         .recordingController.isRecordingValid;
-                                    // final file = await widget.cameraController
-                                    //     ?.stopVideoRecording();
-                                    // widget.recordingController.pauseRecording();
-                                    // saveFile(file?.path);
-                                    // setState(() {});
                                     widget.onDone("");
                                   }
                                   catch(e){
@@ -484,7 +485,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(3.0),
                                       child: SvgPicture.asset(
-                                        "packages/videonote/assets/pause.svg",
+                                        isRecordingPaused?"packages/videonote/assets/camera_icon.svg":"packages/videonote/assets/pause.svg",
                                         width: 25,
                                         height: 25,
                                       ),

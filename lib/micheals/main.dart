@@ -83,11 +83,12 @@ class _CameraPageState extends State<VideNotebutton> {
 
   DateTime? _recordingStartTime;
   bool isCurrentlyRecording = false;
+  bool isRecordingPaused = false;
   bool isLocked = false;
   bool isValidDuration = false;
   double? lastRecord;
 
-  void initCamera() async {
+  Future<void> initCamera() async {
     _cameras = await Camera2.availableCameras();
     // Find the front-facing camera
     final frontCamera = _cameras.firstWhere(
@@ -132,6 +133,7 @@ class _CameraPageState extends State<VideNotebutton> {
   void startRecording() async {
     try {
       isCurrentlyRecording = true;
+      isRecordingPaused=false;
       startVideoRecording();
 
       // cameraController.init(CameraContext())
@@ -192,8 +194,7 @@ class _CameraPageState extends State<VideNotebutton> {
       debugPrint(e.toString());
     }
     _videoPaths.clear();
-    myOverayEntry?.remove();
-    myOverayEntry = null;
+    disposeOverlay();
     setStatee = null;
     setState(() {
       isLocked = false;
@@ -219,7 +220,10 @@ class _CameraPageState extends State<VideNotebutton> {
   void disposeOverlay() {
     myOverayEntry?.remove();
     myOverayEntry = null;
+    isRecordingPaused=false;
+    duration = null;
     _recordingStartTime = null;
+    cameraController?.dispose();
     setState(() {});
     setStatee = null;
   }
@@ -237,6 +241,7 @@ class _CameraPageState extends State<VideNotebutton> {
       sendRecording = false;
       _videoPaths.clear();
     }
+    duration = null;
     _videoPath = null;
     _croppedvideoPath = null;
     _videoPaths.clear();
@@ -253,6 +258,7 @@ class _CameraPageState extends State<VideNotebutton> {
     setState(() {
       _videoPath = null;
       _croppedvideoPath = null;
+      duration = null;
       _videoPaths.clear();
       sendRecording = false;
       stopVideoRecording(shouldDo: false);
@@ -450,7 +456,6 @@ class _CameraPageState extends State<VideNotebutton> {
       final file = await cameraController?.stopVideoRecording();
       if (shouldDo) {
         saveFile(file?.path);
-        initCamera();
       }
     }
   }
@@ -602,6 +607,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                     isRecording: isCurrentlyRecording,
                                     recordingController: _recordingController,
                                     isValidDuration: isValidDuration,
+                                    isRecordingPaused: isRecordingPaused,
                                     cameraController: cameraController,
                                     lockObs: lockObs,
                                     flipCamera: (paths) {
@@ -618,10 +624,34 @@ class _CameraPageState extends State<VideNotebutton> {
                                       debugPrint("start recording");
                                       startRecording();
                                     },
-                                    onDone: (String path) {
-                                      sendRecording = false;
-                                      setState(() {});
-                                      stopVideoRecording();
+                                    onDone: (String path) async{
+                                      if(cameraController.value.isRecordingPaused) {
+                                        isRecordingPaused = false;
+                                        _recordingController.playRecording();
+                                        await cameraController
+                                            ?.resumeVideoRecording();
+                                        setState(() {
+
+                                        });
+                                        setStatee?.call(() {
+
+                                        });
+                                      }
+                                      else{
+                                        isRecordingPaused = true;
+                                        _recordingController.pauseRecording();
+                                        await cameraController
+                                            ?.pauseVideoRecording();
+                                        setState(() {
+
+                                        });
+                                        setStatee?.call(() {
+
+                                        });
+                                      }
+                                      // sendRecording = false;
+                                      // setState(() {});
+                                      // stopVideoRecording();
 
                                       // _videoPath = path;
                                       // debugPrint("OnDonePath is $_videoPath");
@@ -674,6 +704,14 @@ class _CameraPageState extends State<VideNotebutton> {
                                                     (context, duration, child) {
                                                   return Row(
                                                     children: [
+                                                      if(isRecordingPaused)...[
+                                                        SvgPicture.asset(
+                                                          "packages/videonote/assets/delete.svg",
+                                                          width: 25,
+                                                          height: 25,
+                                                        ),
+                                                      ],
+                                                      else...[
                                                       SvgPicture.asset(
                                                         'packages/videonote/assets/recording.svg',
                                                         width: 20,
@@ -683,13 +721,12 @@ class _CameraPageState extends State<VideNotebutton> {
                                                         width: 10,
                                                       ),
                                                       Text(
-                                                        formatDuration(
-                                                            duration.round()),
+                                                        _recordingStartTime?.getDuration()???"0",
                                                         style: const TextStyle(
                                                           fontSize: 18,
                                                           color: Colors.red,
                                                         ),
-                                                      ),
+                                                      ),]
                                                     ],
                                                   );
                                                 },
@@ -712,12 +749,12 @@ class _CameraPageState extends State<VideNotebutton> {
                                                               .center,
                                                       children: [
                                                         SvgPicture.asset(
-                                                          "packages/videonote/assets/delete.svg",
+                                                          isRecordingPaused?"packages/videonote/assets/pause.svg":"packages/videonote/assets/delete.svg",
                                                           width: 25,
                                                           height: 25,
                                                         ),
                                                         const Text(
-                                                          "Slide to cancel",
+                                                         isRecordingPaused?"Recording paused": "Slide to cancel",
                                                           style: TextStyle(
                                                               color: Color(
                                                                   0xFF475467)),
@@ -951,8 +988,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                               return Row(
                                                 children: [
                                                   Text(
-                                                    formatDuration(
-                                                        duration.round()),
+                                                    _recordingStartTime?.getDuration()???"0",
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       color: Colors.black,
@@ -998,6 +1034,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void _showOverlayWithGesture(BuildContext context) {
     if (myOverayEntry == null) {
+      await initCamera();
       if(cameraController?.value?.isInitialized!=true) {
         cameraController!.initialize().then((_) {
           if (!mounted) {
@@ -1279,4 +1316,27 @@ class OverlayStateProvider with ChangeNotifier {
     _scale = newScale;
     notifyListeners();
   }
+}
+
+
+extension durationUtils on DateTime{
+
+  String getDuration(){
+    final recordingEndTime = DateTime.now();
+    final duration = recordingEndTime.difference(this);
+    return formatDateTimeToCustomFormat(duration);
+  }
+
+}
+
+String formatDateTimeToCustomFormat(DateTime dateTime) {
+  // Get the hour and minute parts
+  String hours = dateTime.hour.toString().padLeft(2, '0');
+  String minutes = dateTime.minute.toString().padLeft(2, '0');
+
+  // Get the second part
+  String seconds = dateTime.second.toString().padLeft(2, '0');
+
+  // Format the string
+  return "$hours:$minutes:$seconds";
 }

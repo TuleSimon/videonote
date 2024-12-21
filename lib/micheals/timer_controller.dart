@@ -16,9 +16,9 @@ class RecordingController {
     _isRecordingValid = false; // Reset validity
     _timer?.cancel(); // Cancel existing timer
 
-    _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isPaused) {
-        recordingDuration.value += 00.01;
+        recordingDuration.value += 1;
         if (recordingDuration.value > 1) {
           _isRecordingValid = true;
         }
