@@ -474,6 +474,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   @override
   void dispose() {
+    _recordingController.stopRecording();
     cameraController?.dispose();
     super.dispose();
   }
