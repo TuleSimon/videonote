@@ -53,14 +53,16 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
       debugPrint("File Path: ${widget.filePath}");
       if (!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
+        _controller?.dispose(forceDispose: true);
         _controller = BetterPlayerController(
           BetterPlayerConfiguration(
+            autoDispose: false,
               controlsConfiguration: const BetterPlayerControlsConfiguration(
                   showControls: false, showControlsOnInitialize: false),
               autoPlay: true,
               looping: true,
-              aspectRatio: 19 / 19,
-              fit: BoxFit.fitWidth,
+              aspectRatio: 9 / 16,
+              fit: BoxFit.cover,
               playerVisibilityChangedBehavior: (visibility) {
                 onVisibilityChanged(visibility);
               },
@@ -170,7 +172,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
     try {
       _controller?.pause();
      _controller?.videoPlayerController?.dispose();
-     _controller?.dispose();
+      _controller?.dispose(forceDispose: true);
     }
     catch (e) {
       debugPrint(e.toString());
@@ -246,7 +248,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-          ClipRRect( borderRadius: BorderRadius.all(Radius.circular(300)),
+          ClipRRect( borderRadius: BorderRadius.all(Radius.circular(widget.tapped==true?900: 300)),
 
                 child: Container(
 
