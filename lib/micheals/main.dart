@@ -625,7 +625,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                       startRecording();
                                     },
                                     onDone: (String path) async{
-                                      if(cameraController.value.isRecordingPaused) {
+                                      if(cameraController?.value?.isRecordingPaused==true) {
                                         isRecordingPaused = false;
                                         _recordingController.playRecording();
                                         await cameraController
@@ -711,7 +711,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                           height: 25,
                                                         ),
                                                       ],
-                                                      else...[
+                                                      if(!isRecordingPaused)...[
                                                       SvgPicture.asset(
                                                         'packages/videonote/assets/recording.svg',
                                                         width: 20,
@@ -721,7 +721,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                         width: 10,
                                                       ),
                                                       Text(
-                                                        _recordingStartTime?.getDuration()???"0",
+                                                        _recordingStartTime?.getDuration()??"0",
                                                         style: const TextStyle(
                                                           fontSize: 18,
                                                           color: Colors.red,
@@ -753,7 +753,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                                           width: 25,
                                                           height: 25,
                                                         ),
-                                                        const Text(
+                                                         Text(
                                                          isRecordingPaused?"Recording paused": "Slide to cancel",
                                                           style: TextStyle(
                                                               color: Color(
@@ -988,7 +988,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                               return Row(
                                                 children: [
                                                   Text(
-                                                    _recordingStartTime?.getDuration()???"0",
+                                                    _recordingStartTime?.getDuration()??"0",
                                                     style: const TextStyle(
                                                       fontSize: 18,
                                                       color: Colors.black,
@@ -1032,7 +1032,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   StreamController<double> postionStream = StreamController<double>();
 
-  void _showOverlayWithGesture(BuildContext context) {
+  void _showOverlayWithGesture(BuildContext context) async{
     if (myOverayEntry == null) {
       await initCamera();
       if(cameraController?.value?.isInitialized!=true) {
@@ -1324,18 +1324,16 @@ extension durationUtils on DateTime{
   String getDuration(){
     final recordingEndTime = DateTime.now();
     final duration = recordingEndTime.difference(this);
-    return formatDateTimeToCustomFormat(duration);
+    return formatDurationToCustomFormat(duration);
   }
 
 }
 
-String formatDateTimeToCustomFormat(DateTime dateTime) {
-  // Get the hour and minute parts
-  String hours = dateTime.hour.toString().padLeft(2, '0');
-  String minutes = dateTime.minute.toString().padLeft(2, '0');
-
-  // Get the second part
-  String seconds = dateTime.second.toString().padLeft(2, '0');
+String formatDurationToCustomFormat(Duration duration) {
+  // Get the hour, minute, and second parts
+  String hours = duration.inHours.toString().padLeft(2, '0');
+  String minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+  String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
 
   // Format the string
   return "$hours:$minutes:$seconds";

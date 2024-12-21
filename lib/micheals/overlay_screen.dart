@@ -485,7 +485,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     child: Padding(
                                       padding: const EdgeInsets.all(3.0),
                                       child: SvgPicture.asset(
-                                        isRecordingPaused?"packages/videonote/assets/camera_icon.svg":"packages/videonote/assets/pause.svg",
+                                        widget.isRecordingPaused?"packages/videonote/assets/camera_icon.svg":"packages/videonote/assets/pause.svg",
                                         width: 25,
                                         height: 25,
                                       ),
