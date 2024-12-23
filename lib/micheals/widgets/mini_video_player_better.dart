@@ -296,7 +296,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           if (!widget.show)
             Positioned(
                 left: -2,
-                right: -3,
+                right: -2,
                 top: -2,
                 bottom: -2,
                 child: CustomPaint(

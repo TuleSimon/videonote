@@ -303,6 +303,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   void initState() {
     super.initState();
     init();
+    FocusScope.of(context).unfocus();
   }
 
   @override
