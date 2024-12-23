@@ -22,15 +22,13 @@ import 'package:uuid/uuid.dart';
 
 import 'hole_widget.dart';
 
-
-
 class OverlayScreen extends StatefulWidget {
   const OverlayScreen(
       {super.key,
       required this.cameraController,
       required this.onDone,
       required this.offset,
-        required this.cameras,
+      required this.cameras,
       required this.onCropped,
       required this.onError,
       required this.flipCamera,
@@ -48,7 +46,7 @@ class OverlayScreen extends StatefulWidget {
   final List<Camera2.CameraDescription> cameras;
   final RecordingController recordingController;
   final Function(String path) onDone;
-  final  Future<File>  Function(String) getFilePath;
+  final Future<File> Function(String) getFilePath;
   final Function(String path) onCropped;
   final Function(String path) flipCamera;
   final Function() onError;
@@ -99,7 +97,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
     final maskPath = '${tempDir.path}/mask.png';
 
     // Load the mask from assets
-    final byteData = await rootBundle.load('packages/videonote/assets/mask.png');
+    final byteData =
+        await rootBundle.load('packages/videonote/assets/mask.png');
     final file = File(maskPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return maskPath;
@@ -136,7 +135,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     final directory = await getDownloadsDirectory();
     var uuid = Uuid();
 
-    final outputPath =  (await widget.getFilePath('${uuid.v4()}.mp4')).path;
+    final outputPath = (await widget.getFilePath('${uuid.v4()}.mp4')).path;
     final maskPath = await _copyMaskToTemporaryFolder();
     String ffmpegCommand = "";
 
@@ -159,8 +158,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
-
+          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
     }
 
     print('FFmpeg Command: $ffmpegCommand');
@@ -172,8 +170,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
       print('Input file does not exist.');
       return null;
     }
-
-
 
     // Execute the FFmpeg command
     await FFmpegKit.executeAsync(ffmpegCommand, (session) async {
@@ -222,7 +218,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
       final file = File(path ?? "");
       final size = file.lengthSync(); // Get file size in bytes
       videoDetails['size'] =
-      '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
+          '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
       print(videoDetails);
       if (duration.inSeconds >= 2) {
         debugPrint("Reach here duration");
@@ -236,8 +232,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
         debugPrint("Invalid duration ${isRecordingValid}");
         widget.onError();
       }
-    }
-    catch(e){
+    } catch (e) {
       widget.onError();
     }
   }
@@ -312,11 +307,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-      child: Scaffold(
-        backgroundColor: Color(0xFF1F29377A).withOpacity(.5),
-        body: Container(
+    return Container(
           color: Colors.transparent,
           width: MediaQuery.sizeOf(context).width,
           child: Column(
@@ -427,11 +418,17 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                         0], // Fallback to the first camera if no opposite is found
                                   );
 
-                               //   Stop recording if it is active
+                                  //   Stop recording if it is active
                                   if (widget.cameraController!.value
-                                      .isRecordingVideo || widget.cameraController!.value.isRecordingPaused) {
-                                  final file =   await widget.cameraController!.stopVideoRecording();
-                                  widget.flipCamera(file.path);
+                                          .isRecordingVideo ||
+                                      widget.cameraController!.value
+                                          .isRecordingPaused) {
+                                    widget.cameraController!
+                                        .stopVideoRecording()
+                                        .then((res) {
+                                      widget.flipCamera(res.path);
+                                    });
+
                                     print("Stopped current recording.");
                                   }
                                   final currentDescription =
@@ -439,16 +436,18 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                   final otherCameras = widget.cameras
                                       .firstWhere(
                                           (re) => re != currentDescription);
-                                  debugPrint(newCamera.lensDirection.toString());
+                                  debugPrint(
+                                      newCamera.lensDirection.toString());
+
                                   await widget.cameraController!
                                       .setDescription(otherCameras);
                                   await widget.cameraController!.initialize();
+                                  await widget.cameraController!
+                                      .startVideoRecording();
+                                  if (widget.isRecordingPaused) {
                                     await widget.cameraController!
-                                        .startVideoRecording();
-                                    if(widget.isRecordingPaused){
-                                      await widget.cameraController!
-                                          .pauseVideoRecording();
-                                    }
+                                        .pauseVideoRecording();
+                                  }
                                 } catch (e) {
                                   debugPrint(e.toString());
                                 }
@@ -475,17 +474,16 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     isRecordingValid = widget
                                         .recordingController.isRecordingValid;
                                     widget.onDone("");
-                                  }
-                                  catch(e){
-
-                                  }
+                                  } catch (e) {}
                                 },
                                 child: CircleAvatar(
                                     backgroundColor: const Color(0xFFD92D20),
                                     child: Padding(
                                       padding: const EdgeInsets.all(3.0),
                                       child: SvgPicture.asset(
-                                        widget.isRecordingPaused?"packages/videonote/assets/camera_icon.svg":"packages/videonote/assets/pause.svg",
+                                        widget.isRecordingPaused
+                                            ? "packages/videonote/assets/camera_icon.svg"
+                                            : "packages/videonote/assets/pause.svg",
                                         width: 25,
                                         height: 25,
                                       ),
@@ -548,13 +546,11 @@ class _OverlayScreenState extends State<OverlayScreen> {
                   ],
                 ),
               ),
-               SizedBox(
-                height: 50+ context.getBottomPadding(),
+              SizedBox(
+                height: 50 + context.getBottomPadding(),
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -615,7 +611,6 @@ class CircularProgressPainter extends CustomPainter {
         oldDelegate.backgroundColor != backgroundColor;
   }
 }
-
 
 class CircularOverlayPainter extends CustomPainter {
   @override

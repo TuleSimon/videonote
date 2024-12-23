@@ -13,6 +13,7 @@ class MiniVideoPlayerPlaylist extends StatefulWidget {
   final Function()? onPlay;
   final Function()? onPause;
   final Function(Duration)? onDuration;
+  final Function(BetterPlayerPlaylistController)? onController;
 
   const MiniVideoPlayerPlaylist({
     super.key,
@@ -23,6 +24,7 @@ class MiniVideoPlayerPlaylist extends StatefulWidget {
     this.radius = 200,
     this.onPlay,
     this.onPause,
+    this.onController,
     this.onDuration,
   });
 
@@ -62,24 +64,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
     }
     debugPrint("file paths ${widget.filePaths.join(" ")}");
 
-    _playlistController = BetterPlayerPlaylistController(
-      dataSources,
-      betterPlayerConfiguration: BetterPlayerConfiguration(
-        controlsConfiguration: const BetterPlayerControlsConfiguration(
-          showControls: false,
-          showControlsOnInitialize: false,
-        ),
-        autoPlay: widget.autoPlay,
-        looping: true,
-        aspectRatio: 6 / 19,
-        fit: BoxFit.cover,
-        eventListener: _handlePlayerEvents,
-      ),
-      betterPlayerPlaylistConfiguration: BetterPlayerPlaylistConfiguration(
-        loopVideos: true,
-        nextVideoDelay: Duration(seconds: 2),
-      ),
-    );
+
   }
 
   void _handlePlayerEvents(BetterPlayerEvent event) {
@@ -144,6 +129,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
   void dispose() {
     try {
       _playlistController?.dispose();
+      _playlistController?.betterPlayerController?.dispose(forceDispose: true);
     } catch (e) {
       debugPrint("Error disposing playlist controller: $e");
     }
@@ -152,16 +138,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
 
   @override
   Widget build(BuildContext context) {
-    if (_playlistController == null ||
-        _playlistController?.betterPlayerController == null) {
-      return SizedBox(
-        width: widget.width,
-        height: widget.height,
-        child: const CircularProgressIndicator(
-          color: Colors.amber,
-        ),
-      );
-    }
+
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -177,7 +154,16 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
                 child: SizedBox(
                   width: widget.width,
                   height: widget.height,
-                  child: BetterPlayerPlaylist(
+                  child:  BetterPlayerPlaylist(
+                    onInit: (controller){
+                      WidgetsBinding.instance.addPostFrameCallback((callback){
+                        setState(() {
+                          _playlistController = controller;
+                        });
+                        widget.onController?.call(controller);
+                      });
+
+                    },
                     betterPlayerDataSourceList: widget.filePaths
                         .where((filePath) => File(filePath).existsSync())
                         .map(
@@ -193,6 +179,7 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
                       ),
                       autoPlay: widget.autoPlay,
                       aspectRatio: 6 / 19,
+                      autoDispose: true,
                       fit: BoxFit.cover,
                       eventListener: _handlePlayerEvents,
                     ),
@@ -240,17 +227,17 @@ class _MiniVideoPlayerPlaylist extends State<MiniVideoPlayerPlaylist> {
   }
 
   void _togglePlayPause() {
-    if (_currentController == null ||
-        _currentController?.videoPlayerController?.value.initialized != true) {
+    if (_playlistController == null ||
+        _playlistController?.betterPlayerController?.videoPlayerController?.value.initialized != true) {
       return;
     }
 
     setState(() {
       if (_currentController!.videoPlayerController!.value.isPlaying) {
-        _currentController?.pause();
+        _playlistController?.betterPlayerController?.pause();
         widget.onPause?.call();
       } else {
-        _currentController?.play();
+        _playlistController?.betterPlayerController?.play();
         widget.onPlay?.call();
       }
     });

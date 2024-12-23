@@ -48,6 +48,7 @@ class _MyAppState extends State<MyApp> {
       return await Permission.manageExternalStorage.request().isGranted;
     }
   }
+  bool shouldHide = false;
 
   // This widget is the root of your application.
   @override
@@ -98,9 +99,22 @@ class _MyAppState extends State<MyApp> {
                   onAddFile: (file) async {
                     debugPrint("here $file");
                     recording.add(file);
+                    shouldHide = false;
                     setState(() {});
+
                   },
-                  onStarted: () {},
+                  onStarted: () {
+                    shouldHide = true;
+                    setState(() {
+
+                    });
+                  },
+                  onCancel:(){
+                    shouldHide = false;
+                    setState(() {
+
+                    });
+                  },
                   getFilePath: (name) async {
                     final directory = Platform.isIOS
                         ? await getApplicationDocumentsDirectory()
@@ -117,6 +131,7 @@ class _MyAppState extends State<MyApp> {
                   onCropped: (file) async {
                     debugPrint("here cropped $file");
                     recording.add(file);
+                    shouldHide = false;
                     setState(() {});
                   },
                   child: Icon(Icons.camera),
@@ -162,6 +177,7 @@ class _MyAppState extends State<MyApp> {
                         setState(() {});
                       },
                       autoPlay: true,
+                      shouldHide : shouldHide,
                       filePath: recording[index],
                       show: false,
                     ),

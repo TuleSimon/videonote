@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:videonote/camera_audionote.dart';
+import 'package:better_player/better_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/widgets/mini_video_player.dart';
 import 'package:camera/camera.dart' as Camera2;
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_svg/svg.dart';
@@ -48,6 +50,7 @@ class VideNotebutton extends StatefulWidget {
   final Function(String) onCropped;
   final Future<File> Function(String) getFilePath;
   final Function() onTap;
+  final Function()? onCancel;
   double? padding;
   double? size;
   Widget child;
@@ -60,6 +63,7 @@ class VideNotebutton extends StatefulWidget {
       required this.onCropped,
       required this.onStarted,
       required this.getFilePath,
+       this.onCancel,
       required this.child,
       required this.onTap});
 
@@ -224,6 +228,9 @@ class _CameraPageState extends State<VideNotebutton> {
     duration = null;
     _recordingStartTime = null;
     cameraController?.dispose();
+    previewControoler2?.dispose();
+    previewControoler?.dispose(forceDispose: true);
+    widget.onCancel?.call();
     setState(() {});
     setStatee = null;
   }
@@ -282,13 +289,26 @@ class _CameraPageState extends State<VideNotebutton> {
         return null;
       }
     }
+    if(Platform.isIOS) {
+      try {
+        final result = await _methodChannel.invokeMethod('concatVideos', {
+          'videoPaths': videoPaths,
+          'outputPath': tempOutputPath,
+        });
+        print('Concatenated video saved at: $result');
+        return result as String?;
+      } on PlatformException catch (e) {
+        print('Error: ${e.message}');
+        return null;
+      }
+    }
 
     // Create a temporary text file to list all video files
     final concatFilePath = await _createConcatFile(videoPaths);
 
     // FFmpeg command to concatenate videos
     String concatCommand =
-        '-f concat -safe 0 -i "$concatFilePath" -c copy "$tempOutputPath"';
+        '-f concat -safe 0 -i "$concatFilePath"  -map 0:v -map 0:a -c:a copy -c:v copy "$tempOutputPath"';
 
     // Execute the FFmpeg command
      FFmpegKitConfig.enableLogCallback((log) {
@@ -333,6 +353,11 @@ class _CameraPageState extends State<VideNotebutton> {
     return maskPath;
   }
 
+  BetterPlayerPlaylistController? previewControoler2;
+  BetterPlayerController? previewControoler;
+  static const _methodChannel = MethodChannel('com.example.app/video');
+
+
   Future<String?> exportCircularVideo(String inputPath) async {
     // Get the directory to save the output video
     final directory = await getDownloadsDirectory();
@@ -352,13 +377,65 @@ class _CameraPageState extends State<VideNotebutton> {
         print('Failed to concatenate videos.');
         return null;
       }
+      if (Platform.isIOS) {
+        // Call the iOS MethodChannel to clip the video
+        try {
+          final result = await _methodChannel.invokeMethod('clipVideo', {
+            'inputPath': mergedVideoPath,
+            'outputPath': outputPath,
+          });
 
+          if(result!=null) {
+            if (sendRecording) {
+              widget.onCropped(outputPath);
+              sendRecording = false;
+              _videoPaths.clear();
+            } else {
+              _croppedvideoPath = outputPath;
+            }
+            return "";
+          }
+          else{
+            disposeOverlay();
+          }
+
+        } catch (e) {
+          print("Error clipping video on iOS: $e");
+          return null;
+        }
+      }
       // Apply the mask to the concatenated video
       ffmpegCommand =
           '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     } else {
       print('Input Path: $inputPath');
+      if (Platform.isIOS) {
+        // Call the iOS MethodChannel to clip the video
+        try {
+          final result = await _methodChannel.invokeMethod('clipVideo', {
+            'inputPath': inputPath,
+            'outputPath': outputPath,
+          });
 
+          if(result!=null) {
+            if (sendRecording) {
+              widget.onCropped(outputPath);
+              sendRecording = false;
+              _videoPaths.clear();
+            } else {
+              _croppedvideoPath = outputPath;
+            }
+            return "";
+          }
+          else{
+            disposeOverlay();
+          }
+
+        } catch (e) {
+          print("Error clipping video on iOS: $e");
+          return null;
+        }
+      }
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
@@ -453,7 +530,14 @@ class _CameraPageState extends State<VideNotebutton> {
   void stopVideoRecording({bool shouldDo = true}) async {
     if (cameraController?.value?.isRecordingVideo == true) {
       cameraController?.setFlashMode(Camera2.FlashMode.off);
+      isCurrentlyRecording = false;
       final file = await cameraController?.stopVideoRecording();
+      setState(() {
+
+      });
+      setStatee?.call(() {
+
+    });
       if (shouldDo) {
         saveFile(file?.path);
       }
@@ -465,6 +549,7 @@ class _CameraPageState extends State<VideNotebutton> {
       _recordingStartTime = DateTime.now();
       sendRecording = false;
       _croppedvideoPath = null;
+      isCurrentlyRecording = true;
       _videoPath = null;
       await cameraController?.startVideoRecording();
       _recordingController.startRecording();
@@ -514,7 +599,7 @@ class _CameraPageState extends State<VideNotebutton> {
           setStatee = setState2;
           return BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-              child: ((_videoPath != null || _videoPaths.isNotEmpty) && cameraController?.value?.isRecordingVideo!=true)
+              child: (!isCurrentlyRecording && (_videoPath != null || _videoPaths.isNotEmpty) && cameraController?.value?.isRecordingVideo!=true)
                   ? Scaffold(
                       body: Center(
                         child: SizedBox(
@@ -537,6 +622,12 @@ class _CameraPageState extends State<VideNotebutton> {
                                     });
                                   },
                                   show: true,
+                                  onController: (control){
+                                    previewControoler= control;
+                                    setState(() {
+
+                                    });
+                                  },
                                   filePath: _videoPath!,
                                   autoPlay: true,
                                 )
@@ -555,6 +646,12 @@ class _CameraPageState extends State<VideNotebutton> {
                                       duration = durationn;
                                     });
                                   },
+                            onController: (control){
+                              previewControoler2= control;
+                              setState(() {
+
+                              });
+                            },
                                   filePaths: _videoPaths!,
                                   autoPlay: true,
                                 ),
@@ -614,6 +711,7 @@ class _CameraPageState extends State<VideNotebutton> {
                                     flipCamera: (paths) {
                                       _videoPaths.add(paths);
                                     },
+
                                     startedTime: _recordingStartTime,
                                     cameras: _cameras,
                                     getFilePath: widget.getFilePath,
@@ -1155,16 +1253,17 @@ class _CameraPageState extends State<VideNotebutton> {
     // print("object");
 
     // Show the camera interface
-    return WillPopScope(
-        onWillPop: () async {
+    return PopScope(
+      canPop: !isCurrentlyRecording,
+        onPopInvoked: (bool) async {
           debugPrint("pop here");
           if (isCurrentlyRecording) {
             stopVideoRecording();
             _recordingController.stopRecording();
             cancelOnDone();
-            return false;
+
           }
-          return true; // Allow back button to work normally
+         // Allow back button to work normally
         },
         child: GestureDetector(
           onVerticalDragStart: (details) {
