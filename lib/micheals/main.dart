@@ -1285,18 +1285,7 @@ class _CameraPageState extends State<VideNotebutton> {
     // print("object");
 
     // Show the camera interface
-    return PopScope(
-        canPop: !isCurrentlyRecording,
-        onPopInvoked: (bool) async {
-          debugPrint("pop here");
-          if (isCurrentlyRecording) {
-            stopVideoRecording();
-            _recordingController.stopRecording();
-            cancelOnDone();
-          }
-          // Allow back button to work normally
-        },
-        child: GestureDetector(
+    return GestureDetector(
           onVerticalDragStart: (details) {
             debugPrint("Vertical drag started at ${details.globalPosition}");
           },
@@ -1431,7 +1420,7 @@ class _CameraPageState extends State<VideNotebutton> {
             widget.onTap();
           },
           child: widget.child,
-        ));
+        );
   }
 }
 

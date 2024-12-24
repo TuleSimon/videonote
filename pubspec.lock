@@ -28,9 +28,11 @@ packages:
   better_player:
     dependency: "direct main"
     description:
-      path: "../EXT_betterplayer"
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: "9d535c4eee50d097845ef542e6b44ec660fd0e08"
+      url: "https://github.com/tezdacom/EXT_betterplayer.git"
+    source: git
     version: "0.0.84"
   boolean_selector:
     dependency: transitive

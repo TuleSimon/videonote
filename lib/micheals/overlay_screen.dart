@@ -296,14 +296,17 @@ class _OverlayScreenState extends State<OverlayScreen> {
   bool switching = false;
 
   void init() async {
-    widget.onStart();
+    WidgetsBinding.instance.addPostFrameCallback((res){
+      widget.onStart();
+    });
+    FocusScope.of(context).unfocus();
   }
 
   @override
   void initState() {
     super.initState();
     init();
-    FocusScope.of(context).unfocus();
+
   }
 
   @override

@@ -13,6 +13,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
   final double width;
   final double height;
   final bool show;
+  final bool loop;
   final bool shouldHide;
   final double radius;
   final Function()? onPlay;
@@ -31,6 +32,7 @@ class MiniVideoPlayerBetter extends StatefulWidget {
     this.radius = 200,
     this.tapped,
     this.shouldHide = false,
+    this.loop = false,
     this.onDuration,
     this.onPause,
     this.onController,
@@ -64,7 +66,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
               controlsConfiguration: const BetterPlayerControlsConfiguration(
                   showControls: false, showControlsOnInitialize: false),
               autoPlay: true,
-              looping: true,
+              looping: false,
               aspectRatio: 9 / 16,
               fit: BoxFit.cover,
               playerVisibilityChangedBehavior: (visibility) {
@@ -99,7 +101,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                     BetterPlayerEventType.progress) {
                   final progress = event.parameters?['progress'] as Duration?;
                   final totalDuration =
-                      event.parameters?['duration'] as Duration?;
+                  event.parameters?['duration'] as Duration?;
 
                   if (progress != null && totalDuration != null) {
                     setState(() {
@@ -118,7 +120,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
               }),
           betterPlayerDataSource: BetterPlayerDataSource(
               BetterPlayerDataSourceType.file, widget.filePath),
-        )..setVolume(0);
+        )
+          ..setVolume(0);
         widget.onController?.call(_controller!);
       } else {
         debugPrint("Invalid file path");
@@ -153,15 +156,20 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
         if (_currentProgress > 0.5) {
           final isVideoEnded =
               (_controller?.videoPlayerController?.value.position ??
-                      Duration(seconds: 0)) >=
+                  Duration(seconds: 0)) >=
                   (Duration(
                       milliseconds: (_controller?.videoPlayerController?.value
-                                  .duration?.inMilliseconds ??
-                              1) -
+                          .duration?.inMilliseconds ??
+                          1) -
                           100));
           // debugPrint("Video edned " + isVideoEnded.toString());
           if (isVideoEnded) {
             _currentProgress = 0;
+            if(widget.tapped==true) {
+              WidgetsBinding.instance.addPostFrameCallback((res) {
+                widget.onPause?.call();
+              });
+            }
           }
         }
 
@@ -172,13 +180,14 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   BetterPlayerController? oldController;
+
   @override
   void dispose() {
     try {
       _controller?.videoPlayerController
           ?.removeListener(playListener);
-      oldController= _controller;
-      _controller=null;
+      oldController = _controller;
+      _controller = null;
       setState(() {
 
       });
@@ -208,11 +217,11 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
       } else {
         final isVideoEnded =
             (_controller?.videoPlayerController?.value.position ??
-                    Duration(seconds: 0)) >=
+                Duration(seconds: 0)) >=
                 (Duration(
                     seconds: (_controller?.videoPlayerController?.value.duration
-                                ?.inSeconds ??
-                            1) -
+                        ?.inSeconds ??
+                        1) -
                         1));
         // debugPrint(
         //     "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
@@ -233,9 +242,18 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void didUpdateWidget(covariant MiniVideoPlayerBetter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.tapped != null && widget.tapped != true) {
+    if (widget.tapped != null && widget.tapped != true && !widget.loop) {
       _controller?.setVolume(0.0);
-      _controller?.pause();
+      _controller?.pause?.call();
+    }
+    if (widget.tapped != null && widget.tapped != true && widget.loop) {
+      _controller?.setVolume(0.0);
+      _controller?.setLooping(true);
+      _controller?.play();
+    }
+    if (widget.tapped != null && widget.tapped == true) {
+      _controller?.setVolume(1.0);
+      _controller?.play();
     }
   }
 
@@ -257,50 +275,43 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.all(
-                Radius.circular(widget.tapped == true ? 1200 : 300)),
-            child: Container(
-              width: widget.width,
-              height: widget.height,
-              child: ClipOval(
-                child: Container(
-                  width: widget.width,
-                  height: widget.height,
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: _controller
-                              ?.videoPlayerController?.value?.size?.width ??
-                          0,
-                      height: _controller
-                              ?.videoPlayerController?.value?.size?.height ??
-                          0,
-                      child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..scale(
-                              Platform.isAndroid ? -1.0 : 1.0,
-                              // Flip horizontally
-                              1.0, // Flip vertically
-                            ),
-                          child: widget.shouldHide==true?Container(color: Colors.black):BetterPlayer(
-                            controller: _controller!,
-                          )),
+         Container(
+      width: widget.width,
+        height: widget.height,
+        child: ClipRRect(
+              borderRadius: BorderRadius.all(
+                  Radius.circular(widget.tapped == true ? 1200 : 300)),
+                child: ClipOval(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: widget.width,
+                        height: widget.height,
+                        child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..scale(
+                                Platform.isAndroid ? -1.0 : 1.0,
+                                // Flip horizontally
+                                1.0, // Flip vertically
+                              ),
+                            child: widget.shouldHide == true ? Container(
+                                color: Colors.black) : BetterPlayer(
+                              controller: _controller!,
+                            )),
+                      ),
                     ),
-                  ),
+
                 ),
               ),
             ),
-          ),
+
           if (!widget.show)
-            Positioned(
-                left: -2,
-                right: -2,
-                top: -2,
-                bottom: -2,
+            Container(
+                width: widget.width+15,
+                height: widget.height+15,
                 child: CustomPaint(
-                  size: Size(widget.width, widget.height),
+                  size: Size(600, 1200),
                   painter: CircularProgressPainter(
                     progress: _currentProgress,
                     color: Color(0xFFE1FEC6),
@@ -368,7 +379,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                         width: 5,
                       ),
                       Text(
-                        ' ${_duration.inMinutes}:${_duration.inSeconds.remainder(60)}',
+                        ' ${_duration.inMinutes}:${_duration.inSeconds
+                            .remainder(60)}',
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -401,7 +413,8 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                         width: 5,
                       ),
                       Text(
-                        ' ${_duration.inMinutes}:${_duration.inSeconds.remainder(60)}',
+                        ' ${_duration.inMinutes}:${_duration.inSeconds
+                            .remainder(60)}',
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
