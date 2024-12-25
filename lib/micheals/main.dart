@@ -1148,15 +1148,24 @@ class _CameraPageState extends State<VideNotebutton> {
     if (myOverayEntry == null) {
       await initCamera();
       if (cameraController?.value?.isInitialized != true) {
-        cameraController!.initialize().then((_) {
-          if (!mounted) {
-            return;
+        cameraController!.initialize().then((_) async{
+          try {
+            if (!mounted) {
+              return;
+            }
+            final _minZoom = await _controller?.getMinZoomLevel() ?? 1.0;
+
+            // Set zoom to the lowest (minZoom)
+            await cameraController?.setZoomLevel(_minZoom);
+            myOverayEntry = getMyOverlayEntry(
+                contextt: context, x: buttonOffsetX, y: buttonOffsetY);
+            Overlay.of(context).insert(myOverayEntry!);
+            widget.onStarted();
+            setState(() {});
           }
-          myOverayEntry = getMyOverlayEntry(
-              contextt: context, x: buttonOffsetX, y: buttonOffsetY);
-          Overlay.of(context).insert(myOverayEntry!);
-          widget.onStarted();
-          setState(() {});
+          catch(e){
+            debugPrint(e.toString());
+          }
         }).catchError((Object e) {
           debugPrint("error");
           if (e is CameraException) {
