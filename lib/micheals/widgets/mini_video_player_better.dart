@@ -4,6 +4,7 @@ import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/hole_widget.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class MiniVideoPlayerBetter extends StatefulWidget {
@@ -54,101 +55,30 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void initState() {
     super.initState();
-    try {
-      // getVideoDuration(widget.filePath);
-      debugPrint("File Path: ${widget.filePath}");
-      if (!File(widget.filePath).existsSync()) return;
-      if (widget.filePath.isNotEmpty) {
-        _controller?.dispose(forceDispose: true);
-        _controller = BetterPlayerController(
-          BetterPlayerConfiguration(
-              autoDispose: false,
-              controlsConfiguration: const BetterPlayerControlsConfiguration(
-                  showControls: false, showControlsOnInitialize: false),
-              autoPlay: true,
-              looping: false,
-              aspectRatio: 9 / 16,
-              fit: BoxFit.cover,
-              playerVisibilityChangedBehavior: (visibility) {
-                onVisibilityChanged(visibility);
-              },
-              eventListener: (event) {
-                if (!mounted) return;
-                if (event.betterPlayerEventType ==
-                    BetterPlayerEventType.initialized) {
-                  setState(() {
-                    _duration =
-                        _controller?.videoPlayerController?.value.duration ??
-                            const Duration();
-                    widget.onDuration?.call(_duration);
-                    _controller?.videoPlayerController
-                        ?.addListener(playListener);
-                    if (widget.tapped != null && widget.tapped != true) {
-                      _controller?.setVolume(0.0);
-                    } else {
-                      _controller?.setVolume(1.0);
-                    }
-                  });
-                }
-
-                if (event.betterPlayerEventType ==
-                    BetterPlayerEventType.pause) {
-                  setState(() {
-                    _isPlaying = false;
-                  });
-                }
-                if (event.betterPlayerEventType ==
-                    BetterPlayerEventType.progress) {
-                  final progress = event.parameters?['progress'] as Duration?;
-                  final totalDuration =
-                  event.parameters?['duration'] as Duration?;
-
-                  if (progress != null && totalDuration != null) {
-                    setState(() {
-                      _currentProgress = progress.inMilliseconds /
-                          totalDuration.inMilliseconds;
-                    });
-                  } else {
-                    debugPrint("Progress or duration is null");
-                  }
-                }
-                if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-                  setState(() {
-                    _isPlaying = true;
-                  });
-                }
-              }),
-          betterPlayerDataSource: BetterPlayerDataSource(
-              BetterPlayerDataSourceType.file, widget.filePath),
-        )
-          ..setVolume(0);
-        widget.onController?.call(_controller!);
-      } else {
-        debugPrint("Invalid file path");
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+    _initializeController();
   }
 
-  void onVisibilityChanged(double visibleFraction) async {
-    if (!mounted) return;
-    bool isPlaying = (_controller!.isPlaying()) == true;
-    bool initialized = _controller!.isVideoInitialized() == true;
-    if (visibleFraction >= 0.5) {
-      if (widget.autoPlay && initialized && !isPlaying) {
-        if (widget.tapped != null && widget.tapped != true) {
-          _controller?.setVolume(0.0);
-        }
-        _controller?.seekTo(const Duration(seconds: 0));
-        _controller!.play();
-      }
-    } else {
-      if (initialized && isPlaying) {
-        _controller!.pause();
-      }
-    }
-  }
+  // void onVisibilityChanged(double visibleFraction) async {
+  //   if (!mounted) return;
+  //   bool isPlaying = (_controller!.isPlaying()) == true;
+  //   bool initialized = _controller!.isVideoInitialized() == true;
+  //   if (visibleFraction >= 0.5) {
+  //     if (widget.autoPlay && initialized && !isPlaying) {
+  //       if (widget.tapped != null && widget.tapped != true) {
+  //         _controller?.setVolume(0.0);
+  //       }
+  //       _controller?.seekTo(const Duration(seconds: 0));
+  //       _controller!.play();
+  //     }
+  //   } else {
+  //     if (initialized && isPlaying) {
+  //       _controller!.pause();
+  //       _controller?.dispose(forceDispose: true);
+  //       oldController=_controller;
+  //       _controller=null;
+  //     }
+  //   }
+  // }
 
   void playListener() {
     if (mounted) {
@@ -180,6 +110,100 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   }
 
   BetterPlayerController? oldController;
+
+  void _initializeController() {
+    try {
+      if (!File(widget.filePath).existsSync()) return;
+      if (widget.filePath.isNotEmpty) {
+        _controller?.dispose(forceDispose: true);
+        _controller = BetterPlayerController(
+          BetterPlayerConfiguration(
+            autoDispose: false,
+            controlsConfiguration: const BetterPlayerControlsConfiguration(
+              showControls: false,
+              showControlsOnInitialize: false,
+            ),
+            autoPlay: false, // Auto-play only when visible
+            looping: widget.loop,
+            aspectRatio: 9 / 16,
+            fit: BoxFit.cover,
+            playerVisibilityChangedBehavior: (visibility) {
+              onVisibilityChanged(visibility);
+            },
+            eventListener: (event) {
+              if (!mounted) return;
+              if (event.betterPlayerEventType ==
+                  BetterPlayerEventType.initialized) {
+                setState(() {
+                  _duration =
+                      _controller?.videoPlayerController?.value.duration ??
+                          const Duration();
+                  widget.onDuration?.call(_duration);
+                  _controller?.videoPlayerController?.addListener(playListener);
+                  if (widget.tapped != null && widget.tapped != true) {
+                    _controller?.setVolume(0.0);
+                  } else {
+                    _controller?.setVolume(1.0);
+                  }
+                });
+              }
+
+              if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
+                setState(() {
+                  _isPlaying = false;
+                });
+              }
+              if (event.betterPlayerEventType == BetterPlayerEventType.progress) {
+                final progress = event.parameters?['progress'] as Duration?;
+                final totalDuration =
+                event.parameters?['duration'] as Duration?;
+
+                if (progress != null && totalDuration != null) {
+                  setState(() {
+                    _currentProgress = progress.inMilliseconds /
+                        totalDuration.inMilliseconds;
+                  });
+                } else {
+                  debugPrint("Progress or duration is null");
+                }
+              }
+              if (event.betterPlayerEventType == BetterPlayerEventType.play) {
+                setState(() {
+                  _isPlaying = true;
+                });
+              }
+            },
+          ),
+          betterPlayerDataSource: BetterPlayerDataSource(
+            BetterPlayerDataSourceType.file,
+            widget.filePath,
+          ),
+        )..setVolume(0);
+        widget.onController?.call(_controller!);
+      } else {
+        debugPrint("Invalid file path");
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  void onVisibilityChanged(double visibleFraction) async {
+    if (!mounted) return;
+
+    if (visibleFraction >= 0.5) {
+      // Widget is visible
+      if (_controller == null) {
+        _initializeController();
+      }
+      _controller?.play();
+    } else {
+      // Widget is not visible
+      _controller?.pause();
+      _controller?.dispose(forceDispose: true);
+      _controller = null;
+    }
+  }
 
   @override
   void dispose() {
@@ -244,7 +268,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
     super.didUpdateWidget(oldWidget);
     if (widget.tapped != null && widget.tapped != true && !widget.loop) {
       _controller?.setVolume(0.0);
-      _controller?.pause?.call();
     }
     if (widget.tapped != null && widget.tapped != true && widget.loop) {
       _controller?.setVolume(0.0);
@@ -268,7 +291,13 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           ));
     }
 
-    return GestureDetector(
+    return VisibilityDetector(
+        key: Key(widget.filePath),
+    onVisibilityChanged: (visibilityInfo) {
+    final visibleFraction = visibilityInfo.visibleFraction;
+    onVisibilityChanged(visibleFraction);
+    },
+    child: GestureDetector(
       onTap: () {
         _togglePlayPause();
       },
@@ -425,6 +454,6 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
             )
         ],
       ),
-    );
+    ));
   }
 }

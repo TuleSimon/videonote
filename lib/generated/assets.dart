@@ -32,10 +32,12 @@ class Assets {
   static const String michealsMain = 'lib/micheals/main.dart';
   static const String michealsOverlayScreen = 'lib/micheals/overlay_screen.dart';
   static const String michealsTimerController = 'lib/micheals/timer_controller.dart';
+  static const String providerPlayerProvider = 'lib/micheals/provider/player_provider.dart';
   static const String utilsFileUtils = 'lib/micheals/utils/file_utils.dart';
   static const String utilsMlkitUtils = 'lib/micheals/utils/mlkit_utils.dart';
   static const String widgetsCustomMediaPreview = 'lib/micheals/widgets/custom_media_preview.dart';
   static const String widgetsMiniVideoPlayer = 'lib/micheals/widgets/mini_video_player.dart';
+  static const String widgetsMiniVideoPlayer2 = 'lib/micheals/widgets/mini_video_player2.dart';
   static const String widgetsMiniVideoPlayerBetter = 'lib/micheals/widgets/mini_video_player_better.dart';
   static const String widgetsMiniVideoPlayerBetterList = 'lib/micheals/widgets/mini_video_player_better_list.dart';
   static const String widgetsMiniVideoPlayerVlc = 'lib/micheals/widgets/mini_video_player_vlc.dart';
