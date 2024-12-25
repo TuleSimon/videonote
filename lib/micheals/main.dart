@@ -1153,7 +1153,7 @@ class _CameraPageState extends State<VideNotebutton> {
             if (!mounted) {
               return;
             }
-            final _minZoom = await _controller?.getMinZoomLevel() ?? 1.0;
+            final _minZoom = await cameraController?.getMinZoomLevel() ?? 1.0;
 
             // Set zoom to the lowest (minZoom)
             await cameraController?.setZoomLevel(_minZoom);
