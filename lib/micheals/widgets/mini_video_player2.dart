@@ -20,6 +20,8 @@ class VideoWidget extends ConsumerStatefulWidget {
   final bool show;
   final int currentId;
   final Function()? onPlay;
+  final Function()? onVisible;
+  final Function()? oninvisible;
   final Function()? onPause;
 
   const VideoWidget({
@@ -27,6 +29,8 @@ class VideoWidget extends ConsumerStatefulWidget {
     required this.width,
     this.onPause,
     this.onPlay,
+    this.onVisible,
+    this.oninvisible,
     this.currentId=-1,
     required this.height,
     required this.shouldHide,
@@ -39,7 +43,7 @@ class VideoWidget extends ConsumerStatefulWidget {
   _VideoWidgetState createState() => _VideoWidgetState();
 }
 
-class _VideoWidgetState extends ConsumerState<VideoWidget> {
+class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingObserver{
   BetterPlayerController? _controller;
   NativeVideoPlayerController? controller;
   ControllerData? _controllerData;
@@ -50,6 +54,25 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App is back in the foreground
+      debugPrint('App resumed');
+      if (visibility >= 0.2) {
+        controller?.play();
+        widget.onVisible?.call();
+      }
+    } else if (state == AppLifecycleState.paused) {
+      // App is going to the background
+      debugPrint('App paused');
+      controller?.pause();
+      widget.oninvisible?.call();
+    }
   }
 
   init(NativeVideoPlayerController controllerr) async {
@@ -121,6 +144,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> {
   void dispose() {
     // _controller?.videoPlayerController?.removeListener(_onVideoProgress);
     // ref.read(videoControllerProvider.notifier).disposeControllerById(_controllerData?.id??"");
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
     disposee();
     super.dispose();
   }
@@ -135,8 +159,10 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> {
     if (visibleFraction >= 0.2) {
       controller?.seekTo(0);
       controller?.play();
+      widget.onVisible?.call();
     } else {
       // Widget is not visible
+      widget.oninvisible?.call();
       disposee();
     }
   }
@@ -189,6 +215,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> {
     }
     else if(widget.tapped==true){
       if (visibility >= 0.2) {
+        controller?.setVolume(1);
         controller?.play();
       }
     }
@@ -198,7 +225,9 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> {
   Widget build(BuildContext context) {
     return VisibilityDetector(
       key: Key(widget.filePath),
-      onVisibilityChanged: (visibilityInfo) {},
+      onVisibilityChanged: (visibilityInfo) {
+        onVisibilityChanged(visibilityInfo.visibleFraction);
+      },
       child: GestureDetector(
         onTap: () {
           _togglePlayPause();

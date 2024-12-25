@@ -299,7 +299,6 @@ class _OverlayScreenState extends State<OverlayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((res){
       widget.onStart();
     });
-    FocusScope.of(context).unfocus();
   }
 
   @override
