@@ -78,9 +78,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   init(NativeVideoPlayerController controllerr) async {
     controller = controllerr;
     controller!.onPlaybackReady.addListener(() {
-      // Emitted when the video loaded successfully and it's ready to play.
-      // At this point, videoInfo is available.
-
       _duration = Duration(seconds: controllerr.videoInfo?.duration??0);
       setState(() {
 
@@ -119,7 +116,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       final isVideoEnded = (controller?.playbackInfo?.positionFraction ?? 0) >=
           0.99;
       if (isVideoEnded) {
-        await controller?.seekTo(0);
         await controller?.play();
       }
       if(_currentProgress!=0){
@@ -157,7 +153,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     if (!mounted) return;
 
     if (visibleFraction >= 0.2) {
-      controller?.seekTo(0);
       controller?.play();
       widget.onVisible?.call();
     } else {
@@ -236,6 +231,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
           alignment: Alignment.center,
           children: [
             Container(
+              clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black,
@@ -243,7 +239,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
               width: widget.width,
               height: widget.height,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(400),
+                borderRadius: BorderRadius.circular(800),
                   child: FittedBox(
                     fit: BoxFit.cover,
                     child: SizedBox(
@@ -268,11 +264,10 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                                       type: VideoSourceType.file,
                                     );
                                     init(controller);
+                                    await controller.setVolume(0);
                                     await controller
                                         .loadVideoSource(videoSource);
                                     await controller.play();
-                                    await controller.setVolume(0);
-
                                   },
                                 )),
                       ),

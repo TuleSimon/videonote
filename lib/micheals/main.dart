@@ -1390,7 +1390,7 @@ class _CameraPageState extends State<VideNotebutton> {
               try {
                 sendRecording = true;
                 setStatee?.call(() {});
-                stopVideoRecording(shouldDo: true);
+                stopVideoRecording(shouldDo: true,skip: true);
                 _recordingController.pauseRecording();
               } catch (e) {
                 debugPrint(e.toString());
