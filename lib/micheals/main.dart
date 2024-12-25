@@ -614,7 +614,7 @@ class _CameraPageState extends State<VideNotebutton> {
                       cameraController?.value?.isRecordingVideo != true &&
                       !skip)
                       ? Scaffold(
-                    resizeToAvoidBottomInset: false,
+                    resizeToAvoidBottomInset: true,
                     body: Center(
                       child: SizedBox(
                         width: context.getWidth() * 0.9,
@@ -706,7 +706,7 @@ class _CameraPageState extends State<VideNotebutton> {
                     ),
                   )
                       : Scaffold(
-                    resizeToAvoidBottomInset: false,
+                    resizeToAvoidBottomInset: true,
                     body: GestureDetector(
                         onTap: () {
                           FocusScope.of(context).unfocus();
@@ -1336,6 +1336,7 @@ class _CameraPageState extends State<VideNotebutton> {
         });
       },
       onLongPressStart: (details) async {
+        FocusScope.of(context).unfocus();
         final isGranted = await requestCameraPermission();
         if (isGranted) {
           debugPrint("started");
