@@ -82,6 +82,12 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       setState(() {
 
       });
+      if(_duration!.inSeconds<2){
+        controller?.onPlaybackEnded.removeListener(endlistener);
+        controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
+        controller?.onPlaybackPositionChanged.removeListener(positionListener);
+      }
+
     });
     controller!.onPlaybackStatusChanged.addListener(playbackStatus);
     controller!.onPlaybackPositionChanged.addListener(positionListener);
@@ -90,7 +96,9 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
 
   void endlistener() {
     if(widget.tapped==true) {
-      widget.onPause?.call();
+      if(visibility>0.2) {
+        widget.onPause?.call();
+      }
     }
     if(visibility>0.2) {
       controller?.play();
@@ -104,7 +112,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       debugPrint("duration: "+playbackPosition.toString());
       final isVideoEnded = (controller?.playbackInfo?.positionFraction ?? 0) >=
           0.99;
-      if (isVideoEnded) {
+      if (isVideoEnded && _duration!.inSeconds>2) {
         widget.onPause?.call();
       }
       _currentProgress = playbackPosition;
@@ -158,16 +166,21 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     } else {
       // Widget is not visible
       widget.oninvisible?.call();
-      disposee();
+      disposee2();
     }
   }
 
   void disposee()async{
     await controller?.pause();
-   // controller?.onPlaybackEnded.removeListener(endlistener);
-   // controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
-   // controller?.onPlaybackPositionChanged.removeListener(positionListener);
-   // await controller?.stop();
+   controller?.onPlaybackEnded.removeListener(endlistener);
+   controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
+   controller?.onPlaybackPositionChanged.removeListener(positionListener);
+   await controller?.stop();
+  }
+
+  void disposee2()async{
+    await controller?.pause();
+    await controller?.stop();
   }
 
   void _togglePlayPause() async{
@@ -209,10 +222,12 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       }
     }
     else if(widget.tapped==true){
-      if (visibility >= 0.2) {
+      if(visibility>0.1) {
+         controller?.seekTo(0);
         controller?.setVolume(1);
         controller?.play();
       }
+
     }
   }
 
@@ -234,7 +249,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
               clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.black,
+                color:Color(0xffF2F2F2),
               ),
               width: widget.width,
               height: widget.height,
@@ -253,9 +268,11 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                             // Flip horizontally
                             1.0, // Flip vertically
                           ),
-                        child: widget.shouldHide
-                            ? Container(color: Colors.black)
-                            : AspectRatio(
+                        child:
+                        // widget.shouldHide
+                        //     ? Container(color: Colors.black)
+                        //     :
+                        AspectRatio(
                                 aspectRatio: 16 / 9,
                                 child: NativeVideoPlayerView(
                                   onViewReady: (controller) async {

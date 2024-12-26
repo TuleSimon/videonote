@@ -1112,9 +1112,10 @@ class _CameraPageState extends State<VideNotebutton> {
                                                       Spacer(),
                                                       GestureDetector(
                                                         onTap: () {
-                                                          _recordingController
-                                                              .pauseRecording();
-                                                          stopVideoRecording();
+                                                          sendRecording = true;
+                                                          setStatee?.call(() {});
+                                                          stopVideoRecording(shouldDo: true,skip: true);
+                                                          _recordingController.pauseRecording();
                                                         },
                                                         child:
                                                             const CircleAvatar(
@@ -1154,9 +1155,16 @@ class _CameraPageState extends State<VideNotebutton> {
               return;
             }
             final _minZoom = await cameraController?.getMinZoomLevel() ?? 1.0;
+            final _max = await cameraController?.getMaxZoomLevel() ?? 2.0;
+            debugPrint("max zoom ${_minZoom } $_max");
 
             // Set zoom to the lowest (minZoom)
-            await cameraController?.setZoomLevel(_minZoom);
+           try {
+             await cameraController?.setZoomLevel(
+                 1.2
+             );
+           }
+           catch(e){}
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
             Overlay.of(context).insert(myOverayEntry!);
