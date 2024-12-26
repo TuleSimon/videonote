@@ -82,7 +82,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       setState(() {
 
       });
-      if(_duration!.inSeconds<2){
+      if(_duration!.inSeconds<1){
         controller?.onPlaybackEnded.removeListener(endlistener);
         controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
         controller?.onPlaybackPositionChanged.removeListener(positionListener);
@@ -112,7 +112,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       debugPrint("duration: "+playbackPosition.toString());
       final isVideoEnded = (controller?.playbackInfo?.positionFraction ?? 0) >=
           0.99;
-      if (isVideoEnded && _duration!.inSeconds>2) {
+      if (isVideoEnded && _duration!.inSeconds>1) {
         widget.onPause?.call();
       }
       _currentProgress = playbackPosition;
@@ -155,6 +155,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
 
   double visibility = 1;
   void onVisibilityChanged(double visibleFraction) async {
+    if(!mounted) return;
     setState(() {
       visibility = visibleFraction;
     });
@@ -180,7 +181,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
 
   void disposee2()async{
     await controller?.pause();
-    await controller?.stop();
+
   }
 
   void _togglePlayPause() async{
@@ -223,9 +224,11 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     }
     else if(widget.tapped==true){
       if(visibility>0.1) {
-         controller?.seekTo(0);
-        controller?.setVolume(1);
-        controller?.play();
+         controller?.seekTo(0).then((onValue){
+           controller?.setVolume(1);
+           controller?.play();
+         });
+
       }
 
     }
@@ -265,8 +268,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                         transform: Matrix4.identity()
                           ..scale(
                             1.0,
-                            // Flip horizontally
-                            1.0, // Flip vertically
+                            1.3, // Flip vertically
                           ),
                         child:
                         // widget.shouldHide

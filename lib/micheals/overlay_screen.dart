@@ -321,8 +321,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
               children: [
                 Positioned.fill(
                   child: FractionallySizedBox(
-                    widthFactor: 0.85,
-                    heightFactor: 0.5,
+                      widthFactor: 0.85,
+                      heightFactor: 0.5,
                       child: AspectRatio(
                           aspectRatio: 1 / 1,
                           child: ClipOval(
@@ -330,8 +330,12 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 .isInitialized !=
                                 true
                                 ? Container()
-                                : Camera2.CameraPreview(
-                                widget.cameraController!),
+                                : Transform.scale(
+                              scaleY: 1.3,
+                              scaleX: 1,
+                              child: Camera2.CameraPreview(
+                                  widget.cameraController!),
+                            ),
                           )
                       )),
                 ),
