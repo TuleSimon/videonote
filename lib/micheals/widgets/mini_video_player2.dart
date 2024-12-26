@@ -76,6 +76,14 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   }
 
   init(NativeVideoPlayerController controllerr) async {
+    try {
+      final oldcontrol = controller;
+      oldcontrol?.stop();
+      oldcontrol?.dispose();
+    }
+    catch(e){
+      debugPrint(e.toString());
+    }
     controller = controllerr;
     controller!.onPlaybackReady.addListener(() {
       _duration = Duration(seconds: controllerr.videoInfo?.duration??0);
@@ -95,6 +103,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   }
 
   void endlistener() {
+    if(!mounted) return;
     if(widget.tapped==true) {
       if(visibility>0.2) {
         widget.onPause?.call();
@@ -106,6 +115,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   }
 
   void positionListener() async{
+    if(!mounted) return;
     if(widget.tapped==true) {
       final playbackPosition = controller?.playbackInfo?.positionFraction ??
           0.0;
@@ -136,6 +146,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   }
 
   void playbackStatus() {
+    if(!mounted) return;
     final playbackStatus = controller?.playbackInfo?.status??PlaybackStatus.stopped;
     _isPlaying = playbackStatus==PlaybackStatus.playing;
     setState(() {
@@ -160,13 +171,15 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       visibility = visibleFraction;
     });
 
-    if (visibleFraction >= 0.2) {
+    if (visibleFraction >= 0.4) {
       controller?.play();
-      controller!.onPlaybackStatusChanged.addListener(playbackStatus);
-      controller!.onPlaybackPositionChanged.addListener(positionListener);
-      controller!.onPlaybackEnded.addListener(endlistener);
       widget.onVisible?.call();
-    } else {
+    }
+    if(visibleFraction>0){
+      widget.onVisible?.call();
+      controller?.pause();
+    }
+    else {
       // Widget is not visible
       widget.oninvisible?.call();
       debugPrint("curently invisible");
@@ -179,15 +192,11 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
    controller?.onPlaybackEnded.removeListener(endlistener);
    controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
    controller?.onPlaybackPositionChanged.removeListener(positionListener);
-    controller?.dispose();
+    controller?.stop();
   }
 
   void disposee2()async{
     try {
-      await controller?.pause();
-      controller?.onPlaybackEnded.removeListener(endlistener);
-      controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
-      controller?.onPlaybackPositionChanged.removeListener(positionListener);
       await controller?.stop();
     }
     catch(e){
@@ -229,9 +238,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   @override
   void didUpdateWidget(VideoWidget oldWidget) {
     if(widget.tapped!=true && widget.tapped!=null){
-      if((controller?.playbackInfo?.volume??0)>0) {
         controller?.setVolume(0);
-      }
     }
     else if(widget.tapped==true){
       if(visibility>0.1) {
@@ -279,8 +286,8 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                         alignment: Alignment.center,
                         transform: Matrix4.identity()
                           ..scale(
-                            1.0,
-                            1.2, // Flip vertically
+                            1.1,
+                            1.4, // Flip vertically
                           ),
                         child:
                         // widget.shouldHide

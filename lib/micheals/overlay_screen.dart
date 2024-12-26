@@ -308,264 +308,266 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      width: MediaQuery
-          .sizeOf(context)
-          .width,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: FractionallySizedBox(
-                      widthFactor: 0.85,
-                      heightFactor: 0.5,
-                      child: AspectRatio(
-                          aspectRatio: 1 / 1,
-                          child: ClipOval(
-                            child: widget.cameraController?.value
-                                .isInitialized !=
-                                true
-                                ? Container()
-                                : Transform.scale(
-                              scaleY: 1.3,
-                              scaleX: 1,
-                              child: Camera2.CameraPreview(
-                                  widget.cameraController!),
-                            ),
-                          )
-                      )),
-                ),
-                Center(
-                  child: ValueListenableBuilder<double>(
-                    valueListenable:
-                    widget.recordingController.recordingDuration,
-                    builder: (context, duration, child) {
-                      return CustomPaint(
-                        size: const Size(380, 380),
-                        painter: CircularProgressPainter(
-                          radius: context.getWidth() / 2.2,
-                          progress: duration.toDouble(),
-                          color: Colors.yellow,
-                          backgroundColor: Colors.transparent,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 90,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
+    return RepaintBoundary(
+        child: Container(
+          color: Colors.transparent,
+          width: MediaQuery
+              .sizeOf(context)
+              .width,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Stack(
                   children: [
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () async {
-                        if (widget.cameraController != null) {
-                          if (widget.cameraController!.value.flashMode !=
-                              Camera2.FlashMode.always) {
-                            await widget.cameraController!
-                                .setFlashMode(Camera2.FlashMode.off);
-                          } else {
-                            await widget.cameraController!
-                                .setFlashMode(Camera2.FlashMode.always);
-                          }
-                          setState(
-                                  () {}); // Update the UI to reflect the flash mode change
-                        }
-                      },
-                      child: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Center(
-                            child: widget.cameraController != null
-                                ? widget.cameraController!.value
-                                .flashMode !=
-                                Camera2.FlashMode.always
-                                ? Icon(widget.cameraController!.value
-                                .flashMode ==
-                                Camera2.FlashMode.always
-                                ? Icons.flash_on
-                                : Icons.flash_auto)
-                                : SvgPicture.asset(
-                              "packages/videonote/assets/flash_icon.svg",
-                              width: 25,
-                            )
-                                : SizedBox(),
+                    Positioned.fill(
+                      child: FractionallySizedBox(
+                          widthFactor: 0.85,
+                          heightFactor: 0.5,
+                          child: AspectRatio(
+                              aspectRatio: 1 / 1,
+                              child: ClipOval(
+                                child: widget.cameraController?.value
+                                    .isInitialized !=
+                                    true
+                                    ? Container()
+                                    : Transform.scale(
+                                  scaleY: 1.3,
+                                  scaleX: 1,
+                                  child: Camera2.CameraPreview(
+                                      widget.cameraController!),
+                                ),
+                              )
                           )),
                     ),
-
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                        onTap: () async {
-                          if (widget.cameraController != null) {
-                            try {
-                              if (widget.cameras.isEmpty) {
-                                print(
-                                    "No cameras available or controller is not initialized.");
-                                return;
-                              }
-
-                              // Determine the current camera's lens direction
-                              final currentLensDirection = widget
-                                  .cameraController!
-                                  .description
-                                  .lensDirection;
-
-                              // Find the camera with the opposite lens direction
-                              final newCamera = widget.cameras.firstWhere(
-                                    (camera) =>
-                                camera.lensDirection ==
-                                    (currentLensDirection ==
-                                        CameraLensDirection.front
-                                        ? CameraLensDirection.back
-                                        : CameraLensDirection.front),
-                                orElse: () =>
-                                widget.cameras[
-                                0], // Fallback to the first camera if no opposite is found
-                              );
-
-                              //   Stop recording if it is active
-                              if (widget.cameraController!.value
-                                  .isRecordingVideo ||
-                                  widget.cameraController!.value
-                                      .isRecordingPaused) {
-                                widget.cameraController!
-                                    .stopVideoRecording()
-                                    .then((res) {
-                                  widget.flipCamera(res.path);
-                                });
-
-                                print("Stopped current recording.");
-                              }
-                              final currentDescription =
-                                  widget.cameraController!.description;
-                              final otherCameras = widget.cameras
-                                  .firstWhere(
-                                      (re) => re != currentDescription);
-                              debugPrint(
-                                  newCamera.lensDirection.toString());
-
-                              await widget.cameraController!
-                                  .setDescription(otherCameras);
-                              await widget.cameraController!.initialize();
-                              await widget.cameraController!
-                                  .startVideoRecording();
-                              if (widget.isRecordingPaused) {
-                                await widget.cameraController!
-                                    .pauseVideoRecording();
-                              }
-                            } catch (e) {
-                              debugPrint(e.toString());
-                            }
-                          }
+                    Center(
+                      child: ValueListenableBuilder<double>(
+                        valueListenable:
+                        widget.recordingController.recordingDuration,
+                        builder: (context, duration, child) {
+                          return CustomPaint(
+                            size: const Size(380, 380),
+                            painter: CircularProgressPainter(
+                              radius: context.getWidth() / 2.2,
+                              progress: duration.toDouble(),
+                              color: Colors.yellow,
+                              backgroundColor: Colors.transparent,
+                            ),
+                          );
                         },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: SvgPicture.asset(
-                            "assets/camera_switch_icon.svg",
-                            package: "videonote",
-                            width: 25,
-                          ),
-                        )),
-
-                    // Switch Camera Button
-                  ],
-                ),
-                Row(
-                  children: [
-                    widget.isLocked
-                        ? InkWell(
-                      onTap: () async {
-                        try {
-                          isRecordingValid = widget
-                              .recordingController.isRecordingValid;
-                          widget.onDone("");
-                        } catch (e) {}
-                      },
-                      child: CircleAvatar(
-                          backgroundColor: const Color(0xFFD92D20),
-                          child: Padding(
-                            padding: const EdgeInsets.all(3.0),
-                            child: SvgPicture.asset(
-                              widget.isRecordingPaused
-                                  ? "packages/videonote/assets/camera_icon.svg"
-                                  : "packages/videonote/assets/pause.svg",
-                              width: 25,
-                              height: 25,
-                            ),
-                          )),
-                    )
-                        : AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                        color: Colors.white,
-                      ),
-                      transform: Matrix4.translationValues(
-                        0, // No horizontal movement
-                        widget.isRecording
-                            ? widget.offset.y.abs() / 2
-                            : 200,
-                        // Move vertically (200 units down when collapsed)
-                        0,
-                      ),
-                      height: 94,
-                      width: 45,
-                      child: Column(
-                        children: [
-                          const SizedBox(
-                            height: 5,
-                          ),
-                          Icon(
-                            widget.isLocked
-                                ? Icons.lock_outlined
-                                : Icons.lock_open_outlined,
-                          ),
-                          SizedBox(
-                            height: 5 +
-                                (widget.lockObs > -0.1
-                                    ? widget.lockObs
-                                    : 0),
-                          ),
-                          const Icon(
-                            Icons.arrow_drop_up_sharp,
-                          ),
-                          if (widget.lockObs > -0.15) ...[
-                            const SizedBox(
-                              height: 5,
-                            ),
-                            const Icon(
-                              Icons.arrow_drop_up_sharp,
-                            ),
-                          ]
-                        ],
                       ),
                     ),
-                    const SizedBox(
-                      width: 15,
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 90,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () async {
+                            if (widget.cameraController != null) {
+                              if (widget.cameraController!.value.flashMode !=
+                                  Camera2.FlashMode.always) {
+                                await widget.cameraController!
+                                    .setFlashMode(Camera2.FlashMode.off);
+                              } else {
+                                await widget.cameraController!
+                                    .setFlashMode(Camera2.FlashMode.always);
+                              }
+                              setState(
+                                      () {}); // Update the UI to reflect the flash mode change
+                            }
+                          },
+                          child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              child: Center(
+                                child: widget.cameraController != null
+                                    ? widget.cameraController!.value
+                                    .flashMode !=
+                                    Camera2.FlashMode.always
+                                    ? Icon(widget.cameraController!.value
+                                    .flashMode ==
+                                    Camera2.FlashMode.always
+                                    ? Icons.flash_on
+                                    : Icons.flash_auto)
+                                    : SvgPicture.asset(
+                                  "packages/videonote/assets/flash_icon.svg",
+                                  width: 25,
+                                )
+                                    : SizedBox(),
+                              )),
+                        ),
+
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                            onTap: () async {
+                              if (widget.cameraController != null) {
+                                try {
+                                  if (widget.cameras.isEmpty) {
+                                    print(
+                                        "No cameras available or controller is not initialized.");
+                                    return;
+                                  }
+
+                                  // Determine the current camera's lens direction
+                                  final currentLensDirection = widget
+                                      .cameraController!
+                                      .description
+                                      .lensDirection;
+
+                                  // Find the camera with the opposite lens direction
+                                  final newCamera = widget.cameras.firstWhere(
+                                        (camera) =>
+                                    camera.lensDirection ==
+                                        (currentLensDirection ==
+                                            CameraLensDirection.front
+                                            ? CameraLensDirection.back
+                                            : CameraLensDirection.front),
+                                    orElse: () =>
+                                    widget.cameras[
+                                    0], // Fallback to the first camera if no opposite is found
+                                  );
+
+                                  //   Stop recording if it is active
+                                  if (widget.cameraController!.value
+                                      .isRecordingVideo ||
+                                      widget.cameraController!.value
+                                          .isRecordingPaused) {
+                                    widget.cameraController!
+                                        .stopVideoRecording()
+                                        .then((res) {
+                                      widget.flipCamera(res.path);
+                                    });
+
+                                    print("Stopped current recording.");
+                                  }
+                                  final currentDescription =
+                                      widget.cameraController!.description;
+                                  final otherCameras = widget.cameras
+                                      .firstWhere(
+                                          (re) => re != currentDescription);
+                                  debugPrint(
+                                      newCamera.lensDirection.toString());
+
+                                  await widget.cameraController!
+                                      .setDescription(otherCameras);
+                                  await widget.cameraController!.initialize();
+                                  await widget.cameraController!
+                                      .startVideoRecording();
+                                  if (widget.isRecordingPaused) {
+                                    await widget.cameraController!
+                                        .pauseVideoRecording();
+                                  }
+                                } catch (e) {
+                                  debugPrint(e.toString());
+                                }
+                              }
+                            },
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              child: SvgPicture.asset(
+                                "assets/camera_switch_icon.svg",
+                                package: "videonote",
+                                width: 25,
+                              ),
+                            )),
+
+                        // Switch Camera Button
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        widget.isLocked
+                            ? InkWell(
+                          onTap: () async {
+                            try {
+                              isRecordingValid = widget
+                                  .recordingController.isRecordingValid;
+                              widget.onDone("");
+                            } catch (e) {}
+                          },
+                          child: CircleAvatar(
+                              backgroundColor: const Color(0xFFD92D20),
+                              child: Padding(
+                                padding: const EdgeInsets.all(3.0),
+                                child: SvgPicture.asset(
+                                  widget.isRecordingPaused
+                                      ? "packages/videonote/assets/camera_icon.svg"
+                                      : "packages/videonote/assets/pause.svg",
+                                  width: 25,
+                                  height: 25,
+                                ),
+                              )),
+                        )
+                            : AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                            color: Colors.white,
+                          ),
+                          transform: Matrix4.translationValues(
+                            0, // No horizontal movement
+                            widget.isRecording
+                                ? widget.offset.y.abs() / 2
+                                : 200,
+                            // Move vertically (200 units down when collapsed)
+                            0,
+                          ),
+                          height: 94,
+                          width: 45,
+                          child: Column(
+                            children: [
+                              const SizedBox(
+                                height: 5,
+                              ),
+                              Icon(
+                                widget.isLocked
+                                    ? Icons.lock_outlined
+                                    : Icons.lock_open_outlined,
+                              ),
+                              SizedBox(
+                                height: 5 +
+                                    (widget.lockObs > -0.1
+                                        ? widget.lockObs
+                                        : 0),
+                              ),
+                              const Icon(
+                                Icons.arrow_drop_up_sharp,
+                              ),
+                              if (widget.lockObs > -0.15) ...[
+                                const SizedBox(
+                                  height: 5,
+                                ),
+                                const Icon(
+                                  Icons.arrow_drop_up_sharp,
+                                ),
+                              ]
+                            ],
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 15,
+                        )
+                      ],
                     )
                   ],
-                )
-              ],
-            ),
+                ),
+              ),
+              SizedBox(
+                height: 50 + context.getBottomPadding(),
+              ),
+            ],
           ),
-          SizedBox(
-            height: 50 + context.getBottomPadding(),
-          ),
-        ],
-      ),
+        )
     );
   }
 }
