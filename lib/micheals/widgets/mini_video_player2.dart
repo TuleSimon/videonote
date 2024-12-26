@@ -159,14 +159,17 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     setState(() {
       visibility = visibleFraction;
     });
-    if (!mounted) return;
 
     if (visibleFraction >= 0.2) {
       controller?.play();
+      controller!.onPlaybackStatusChanged.addListener(playbackStatus);
+      controller!.onPlaybackPositionChanged.addListener(positionListener);
+      controller!.onPlaybackEnded.addListener(endlistener);
       widget.onVisible?.call();
     } else {
       // Widget is not visible
       widget.oninvisible?.call();
+      debugPrint("curently invisible");
       disposee2();
     }
   }
@@ -176,12 +179,20 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
    controller?.onPlaybackEnded.removeListener(endlistener);
    controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
    controller?.onPlaybackPositionChanged.removeListener(positionListener);
-   await controller?.stop();
+    controller?.dispose();
   }
 
   void disposee2()async{
-    await controller?.pause();
-
+    try {
+      await controller?.pause();
+      controller?.onPlaybackEnded.removeListener(endlistener);
+      controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
+      controller?.onPlaybackPositionChanged.removeListener(positionListener);
+      await controller?.stop();
+    }
+    catch(e){
+      debugPrint(e.toString());
+    }
   }
 
   void _togglePlayPause() async{
@@ -239,6 +250,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     return VisibilityDetector(
       key: Key(widget.filePath),
       onVisibilityChanged: (visibilityInfo) {
+        debugPrint("visibility changed ${visibilityInfo.visibleFraction}");
         onVisibilityChanged(visibilityInfo.visibleFraction);
       },
       child: GestureDetector(
@@ -268,7 +280,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                         transform: Matrix4.identity()
                           ..scale(
                             1.0,
-                            1.3, // Flip vertically
+                            1.2, // Flip vertically
                           ),
                         child:
                         // widget.shouldHide
