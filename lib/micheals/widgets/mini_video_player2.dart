@@ -184,7 +184,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
    controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
    controller?.onPlaybackPositionChanged.removeListener(positionListener);
     controller?.stop();
-    controller?.dispose();
   }
 
   void disposee2()async{
