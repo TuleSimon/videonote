@@ -77,7 +77,6 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       // App is going to the background
       debugPrint('App paused');
       _controller?.pause();
-
     }
   }
 
