@@ -55,7 +55,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
   @override
   void initState() {
     super.initState();
-    _initializeController();
+  //  _initializeController();
   }
 
   // void onVisibilityChanged(double visibleFraction) async {
@@ -95,11 +95,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           // debugPrint("Video edned " + isVideoEnded.toString());
           if (isVideoEnded) {
             _currentProgress = 0;
-            if(widget.tapped==true) {
               WidgetsBinding.instance.addPostFrameCallback((res) {
                 widget.onPause?.call();
               });
-            }
+
           }
         }
 
@@ -111,11 +110,13 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   BetterPlayerController? oldController;
 
-  void _initializeController() {
+  Future<void> _initializeController() async{
     try {
       if (!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
-        _controller?.dispose(forceDispose: true);
+        oldController = _controller;
+        oldController?.dispose(forceDispose: true);
+        oldController?.videoPlayerController?.dispose();
         _controller = BetterPlayerController(
           BetterPlayerConfiguration(
             autoDispose: false,
@@ -123,13 +124,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
               showControls: false,
               showControlsOnInitialize: false,
             ),
-            autoPlay: false, // Auto-play only when visible
-            looping: widget.loop,
+            autoPlay: true, // Auto-play only when visible
+            looping: true,
             aspectRatio: 9 / 16,
             fit: BoxFit.cover,
-            playerVisibilityChangedBehavior: (visibility) {
-              onVisibilityChanged(visibility);
-            },
             eventListener: (event) {
               if (!mounted) return;
               if (event.betterPlayerEventType ==
@@ -158,12 +156,13 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                 final totalDuration =
                 event.parameters?['duration'] as Duration?;
 
-                if (progress != null && totalDuration != null) {
+                if (progress != null && totalDuration != null && widget.tapped==true) {
                   setState(() {
                     _currentProgress = progress.inMilliseconds /
                         totalDuration.inMilliseconds;
                   });
                 } else {
+                  _currentProgress=0;
                   debugPrint("Progress or duration is null");
                 }
               }
@@ -180,28 +179,38 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
           ),
         )..setVolume(0);
         widget.onController?.call(_controller!);
+        setState(() {
+
+        });
       } else {
         debugPrint("Invalid file path");
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("error "+ e.toString());
     }
   }
 
+  double visiblity = 1;
   void onVisibilityChanged(double visibleFraction) async {
-    if (!mounted) return;
+    if (!mounted ) return;
 
-    if (visibleFraction >= 0.5) {
+    setState(() {
+      visiblity = visibleFraction;
+    });
+    if (visibleFraction >= 0.1) {
       // Widget is visible
-      if (_controller == null) {
-        _initializeController();
+      if (_controller == null ||  _controller?.isVideoInitialized()!=true) {
+        await _initializeController();
       }
       _controller?.play();
     } else {
-      // Widget is not visible
-      _controller?.pause();
-      _controller?.dispose(forceDispose: true);
-      _controller = null;
+      if( _controller?.isVideoInitialized()==true) {
+        _controller?.videoPlayerController?.dispose();
+        _controller?.dispose(forceDispose: true);
+        // Widget is not visible
+        _controller?.seekTo(Duration(seconds: 0));
+        _controller?.pause();
+      }
     }
   }
 
@@ -225,7 +234,9 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   void _togglePlayPause() {
     if (_controller == null ||
-        _controller?.videoPlayerController?.value.initialized == false) return;
+        _controller?.videoPlayerController?.value.initialized == false) {
+      _initializeController();
+      return;}
 
     setState(() {
       if (widget.tapped != true && widget.tapped != null) {
@@ -282,17 +293,10 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || _controller?.isVideoInitialized() != true) {
-      return SizedBox(
-          width: widget.width,
-          height: widget.height,
-          child: CircularProgressIndicator(
-            color: Colors.amber,
-          ));
-    }
+
 
     return VisibilityDetector(
-        key: Key(widget.filePath),
+      key: Key(widget.filePath),
     onVisibilityChanged: (visibilityInfo) {
     final visibleFraction = visibilityInfo.visibleFraction;
     onVisibilityChanged(visibleFraction);
@@ -324,7 +328,7 @@ class _MiniVideoPlayer extends State<MiniVideoPlayerBetter> {
                                 // Flip horizontally
                                 1.0, // Flip vertically
                               ),
-                            child: widget.shouldHide == true ? Container(
+                            child: (widget.shouldHide == true || visiblity<0.1 || _controller?.isVideoInitialized()!=true) ? Container(
                                 color: Colors.black) : BetterPlayer(
                               controller: _controller!,
                             )),
