@@ -41,6 +41,7 @@ class Assets {
   static const String widgetsMiniVideoPlayerBetter = 'lib/micheals/widgets/mini_video_player_better.dart';
   static const String widgetsMiniVideoPlayerBetterList = 'lib/micheals/widgets/mini_video_player_better_list.dart';
   static const String widgetsMiniVideoPlayerVlc = 'lib/micheals/widgets/mini_video_player_vlc.dart';
+  static const String widgetsRegistry = 'lib/micheals/widgets/registry.dart';
   static const String widgetsVideoProcessor = 'lib/micheals/widgets/video_processor.dart';
 
 }

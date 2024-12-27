@@ -4,12 +4,15 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
 import 'package:videonote/videonote.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 void main() async {
-  runApp(MyApp());
+  runApp(ProviderScope(
+      child: MyApp()
+  ));
 }
 
 class MyApp extends StatefulWidget {
@@ -45,9 +48,12 @@ class _MyAppState extends State<MyApp> {
     if (await Permission.manageExternalStorage.isGranted) {
       return true;
     } else {
-      return await Permission.manageExternalStorage.request().isGranted;
+      return await Permission.manageExternalStorage
+          .request()
+          .isGranted;
     }
   }
+
   bool shouldHide = false;
 
   // This widget is the root of your application.
@@ -101,7 +107,6 @@ class _MyAppState extends State<MyApp> {
                     recording.add(file);
                     shouldHide = false;
                     setState(() {});
-
                   },
                   onStarted: () {
                     shouldHide = true;
@@ -109,7 +114,7 @@ class _MyAppState extends State<MyApp> {
 
                     });
                   },
-                  onCancel:(){
+                  onCancel: () {
                     shouldHide = false;
                     setState(() {
 
@@ -140,7 +145,7 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         body: GestureDetector(
-            // Detect taps outside the MiniVideoPlayer
+          // Detect taps outside the MiniVideoPlayer
             onTap: () {
               if (currentlyTapped != -1) {
                 setState(() {
@@ -150,7 +155,10 @@ class _MyAppState extends State<MyApp> {
             },
             behavior: HitTestBehavior.translucent,
             child: Container(
-              width: MediaQuery.of(context).size.width,
+              width: MediaQuery
+                  .of(context)
+                  .size
+                  .width,
               margin: const EdgeInsets.symmetric(horizontal: 10),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -160,13 +168,21 @@ class _MyAppState extends State<MyApp> {
                   return AnimatedSize(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeIn,
-                    child: VideoWidget(
+                    child: MiniVideoPlayerBetter(
                       width: currentlyTapped == index
-                          ? context.getSize().width * 0.8
-                          : context.getSize().width * 0.5,
+                          ? context
+                          .getSize()
+                          .width * 0.9
+                          : context
+                          .getSize()
+                          .width * 0.7,
                       height: currentlyTapped == index
-                          ? context.getSize().width * 0.8
-                          : context.getSize().width * 0.5,
+                          ? context
+                          .getSize()
+                          .width * 0.9
+                          : context
+                          .getSize()
+                          .width * 0.7,
                       tapped: currentlyTapped == index,
                       onPlay: () {
                         currentlyTapped = index;
@@ -176,7 +192,7 @@ class _MyAppState extends State<MyApp> {
                         currentlyTapped = -1;
                         setState(() {});
                       },
-                      shouldHide : shouldHide,
+                      shouldHide: shouldHide,
                       filePath: recording[index],
                       show: false,
                     ),

@@ -46,7 +46,6 @@ class VideoWidget extends ConsumerStatefulWidget {
 class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingObserver{
   BetterPlayerController? _controller;
   NativeVideoPlayerController? controller;
-  ControllerData? _controllerData;
   Duration _duration = Duration.zero;
   double _currentProgress = 0.0;
   bool _isPlaying = false;
@@ -277,8 +276,8 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                         alignment: Alignment.center,
                         transform: Matrix4.identity()
                           ..scale(
-                            1.1,
-                            1.4, // Flip vertically
+                            Platform.isAndroid ? -1.0 : 1.0,
+                            1.3, // Flip vertically
                           ),
                         child:
                         // widget.shouldHide

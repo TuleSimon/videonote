@@ -1182,7 +1182,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
             // Set zoom to the lowest (minZoom)
             try {
-              await cameraController?.setZoomLevel(1.2);
+              await cameraController?.setZoomLevel(1.25);
             } catch (e) {}
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
