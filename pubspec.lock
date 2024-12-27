@@ -422,9 +422,9 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
-      resolved-ref: "2311635e6eee09b46c6c4a6cc76909a44b87e4ad"
-      url: "https://github.com/albemala/native_video_player.git"
+      ref: "feat/exoplayer"
+      resolved-ref: ac78487b9a87c9e72cd15b428270a905ac551f29
+      url: "https://github.com/immich-app/native_video_player.git"
     source: git
     version: "1.3.1"
   package_info_plus:

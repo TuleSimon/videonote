@@ -308,8 +308,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-        child: Container(
+    return  Container(
           color: Colors.transparent,
           width: MediaQuery
               .sizeOf(context)
@@ -567,8 +566,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
               ),
             ],
           ),
-        )
-    );
+        );
   }
 }
 

@@ -160,7 +160,7 @@ class _MyAppState extends State<MyApp> {
                   return AnimatedSize(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeIn,
-                    child: MiniVideoPlayerBetter(
+                    child: VideoWidget(
                       width: currentlyTapped == index
                           ? context.getSize().width * 0.8
                           : context.getSize().width * 0.5,
@@ -176,7 +176,6 @@ class _MyAppState extends State<MyApp> {
                         currentlyTapped = -1;
                         setState(() {});
                       },
-                      autoPlay: true,
                       shouldHide : shouldHide,
                       filePath: recording[index],
                       show: false,

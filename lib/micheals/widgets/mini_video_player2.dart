@@ -148,11 +148,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   void playbackStatus() {
     if(!mounted) return;
     final playbackStatus = controller?.playbackInfo?.status??PlaybackStatus.stopped;
-    _isPlaying = playbackStatus==PlaybackStatus.playing;
-    setState(() {
-
-    });
-
   }
 
   @override
@@ -171,13 +166,9 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       visibility = visibleFraction;
     });
 
-    if (visibleFraction >= 0.4) {
+    if (visibleFraction >= 0.2) {
       controller?.play();
       widget.onVisible?.call();
-    }
-    if(visibleFraction>0){
-      widget.onVisible?.call();
-      controller?.pause();
     }
     else {
       // Widget is not visible
@@ -193,6 +184,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
    controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
    controller?.onPlaybackPositionChanged.removeListener(positionListener);
     controller?.stop();
+    controller?.dispose();
   }
 
   void disposee2()async{
