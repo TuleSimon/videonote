@@ -325,9 +325,6 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
          visiblity=visibleFraction;
-         setState(() {
-
-         });
          if(!widget.canBuild) {
            _timer?.cancel();
            _timer = null;
