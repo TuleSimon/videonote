@@ -20,6 +20,7 @@ class VideoWidget extends ConsumerStatefulWidget {
   final bool show;
   final int currentId;
   final Function()? onPlay;
+  final Future<bool> Function()? isLastVideo;
   final Function()? onVisible;
   final Function()? oninvisible;
   final Function()? onPause;
@@ -36,6 +37,7 @@ class VideoWidget extends ConsumerStatefulWidget {
     required this.shouldHide,
     required this.tapped,
     required this.show,
+     this.isLastVideo,
     Key? key,
   }) : super(key: key);
 
@@ -101,7 +103,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
     controller!.onPlaybackEnded.addListener(endlistener);
   }
 
-  void endlistener() {
+  void endlistener() async{
     if(!mounted) return;
     if(widget.tapped==true) {
       if(visibility>0.2) {
@@ -109,8 +111,12 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       }
     }
     if(visibility>0.2) {
-      controller?.play();
+      final lastVideo = await widget.isLastVideo?.call();
+      if(lastVideo==true || leftview){
+        leftview=false;
+    controller?.play();
     }
+      }
   }
 
   void positionListener() async{
@@ -147,6 +153,10 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   void playbackStatus() {
     if(!mounted) return;
     final playbackStatus = controller?.playbackInfo?.status??PlaybackStatus.stopped;
+    _isPlaying = playbackStatus==PlaybackStatus.playing;
+    setState(() {
+
+    });
   }
 
   @override
@@ -159,6 +169,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
   }
 
   double visibility = 1;
+  bool leftview=false;
   void onVisibilityChanged(double visibleFraction) async {
     if(!mounted) return;
     setState(() {
@@ -170,6 +181,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
       widget.onVisible?.call();
     }
     else {
+      leftview=true;
       // Widget is not visible
       widget.oninvisible?.call();
       debugPrint("curently invisible");
@@ -303,6 +315,22 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
                   ),
                 ),
             ),
+            if (!_isPlaying && widget.tapped!=true)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top:0,
+                child:UnconstrainedBox(
+                  child: GestureDetector(
+                  onTap: _togglePlayPause,
+                  child: SvgPicture.asset(
+                    "assets/play.svg",
+                    package: "videonote",
+                    width: 65,
+                  ),
+                )),
+              ),
             if (!widget.show)
               SizedBox(
                 width: widget.width + 15,

@@ -64,6 +64,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Add observer
+    // _initializeController();
   }
 
   @override
@@ -226,10 +227,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       setState(() {
         visiblity = visibleFraction;
       });
-      _initializeController();
     } else {
       debugPrint("freeing");
-      _freeController();
       if (!mounted) return;
       setState(() {
         visiblity = visibleFraction;
@@ -239,19 +238,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
   @override
   void dispose() {
-    try {
-      _controller?.videoPlayerController
-          ?.removeListener(playListener);
-      oldController = _controller;
-      _controller = null;
-      setState(() {
-
-      });
-      oldController?.videoPlayerController?.dispose();
-      oldController?.dispose(forceDispose: true);
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+    betterPlayerControllerStreamController.close();
     super.dispose();
   }
 
