@@ -361,7 +361,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                   ..scale(
                                     Platform.isAndroid ? -1.0 : 1.0,
                                     // Flip horizontally
-                                    1.3, // Flip vertically
+                                    1.2, // Flip vertically
                                   ),
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
