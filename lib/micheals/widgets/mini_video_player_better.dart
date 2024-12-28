@@ -81,31 +81,37 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   }
 
   void playListener() {
-    if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((callback) {
-        setState(() {
-          if (_currentProgress > 0.5) {
-            final isVideoEnded =
-                (_controller?.videoPlayerController?.value.position ??
-                    Duration(seconds: 0)) >=
-                    (Duration(
-                        milliseconds: (_controller?.videoPlayerController?.value
-                            .duration?.inMilliseconds ??
-                            1) -
-                            100));
-            // debugPrint("Video edned " + isVideoEnded.toString());
-            if (isVideoEnded) {
-              _currentProgress = 0;
-              WidgetsBinding.instance.addPostFrameCallback((res) {
-                widget.onPause?.call();
-              });
+    try {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((callback) {
+          setState(() {
+            if (_currentProgress > 0.5) {
+              final isVideoEnded =
+                  (_controller?.videoPlayerController?.value.position ??
+                      Duration(seconds: 0)) >=
+                      (Duration(
+                          milliseconds: (_controller?.videoPlayerController
+                              ?.value
+                              .duration?.inMilliseconds ??
+                              1) -
+                              100));
+              // debugPrint("Video edned " + isVideoEnded.toString());
+              if (isVideoEnded) {
+                _currentProgress = 0;
+                WidgetsBinding.instance.addPostFrameCallback((res) {
+                  widget.onPause?.call();
+                });
+              }
             }
-          }
 
-          _isPlaying =
-              _controller?.videoPlayerController?.value.isPlaying ?? false;
+            _isPlaying =
+                _controller?.videoPlayerController?.value.isPlaying ?? false;
+          });
         });
-      });
+      }
+    }
+    catch(e){
+
     }
   }
 
@@ -190,11 +196,17 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         setState(() {
           _currentProgress = progress.inMilliseconds /
               totalDuration.inMilliseconds;
+          if(_currentProgress>=0.99){
+            widget.onPause?.call();
+          }
         });
       } else {
         _currentProgress = 0;
         debugPrint("Progress or duration is null");
       }
+    }
+    if (event.betterPlayerEventType == BetterPlayerEventType.finished) {
+      // widget.onPause?.call();
     }
     if (event.betterPlayerEventType == BetterPlayerEventType.play) {
       setState(() {
@@ -290,13 +302,15 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     if (_controller?.isVideoInitialized() != true) return;
     if (widget.tapped != null && widget.tapped != true ) {
       _controller?.setVolume(0.0);
+      _controller?.setLooping(true);
+      _controller?.play();
     }
 
     if (widget.tapped != null && widget.tapped == true) {
       if(oldWidget.tapped!=true) {
         _controller?.seekTo(Duration(seconds: 0));
         _controller?.setVolume(1.0);
-        _controller?.setLooping(true);
+        _controller?.setLooping(false);
       }
       _controller?.play();
     }

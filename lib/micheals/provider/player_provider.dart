@@ -31,7 +31,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
             aspectRatio: 9 / 16,
             fit: BoxFit.cover,
           ),
-        )..setVolume(0),
+        ),
       );
     }
     // Update the state with the new controllers
