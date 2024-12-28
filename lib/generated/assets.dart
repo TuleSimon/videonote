@@ -33,6 +33,10 @@ class Assets {
   static const String michealsOverlayScreen = 'lib/micheals/overlay_screen.dart';
   static const String michealsTimerController = 'lib/micheals/timer_controller.dart';
   static const String providerPlayerProvider = 'lib/micheals/provider/player_provider.dart';
+  static const String reusuableModel = 'lib/reusuable/model.dart';
+  static const String reusuableReusableVideoListController = 'lib/reusuable/reusable_video_list_controller.dart';
+  static const String reusuableReusableVideoListPage = 'lib/reusuable/reusable_video_list_page.dart';
+  static const String reusuableReusableVideoListWidget = 'lib/reusuable/reusable_video_list_widget.dart';
   static const String utilsFileUtils = 'lib/micheals/utils/file_utils.dart';
   static const String utilsMlkitUtils = 'lib/micheals/utils/mlkit_utils.dart';
   static const String widgetsCustomMediaPreview = 'lib/micheals/widgets/custom_media_preview.dart';

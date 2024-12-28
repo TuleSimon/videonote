@@ -73,11 +73,9 @@ class ReusableVideoListController {
   void dispose() {
    try {
      for (final controller in betterPlayerControllerRegistry) {
-       controller.pause();
        controller.dispose(forceDispose: true);
      }
      for (final controller in usedBetterPlayerControllerRegistry) {
-       controller.pause();
        controller.dispose(forceDispose: true);
      }
    }

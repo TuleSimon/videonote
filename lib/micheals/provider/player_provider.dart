@@ -16,7 +16,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
   void initializeControllers() {
     dispose();
     final controllers = <BetterPlayerController>[];
-    for (int index = 0; index < (Platform.isIOS?5:3); index++) {
+    for (int index = 0; index < (3); index++) {
       controllers.add(
         BetterPlayerController(
           BetterPlayerConfiguration(
@@ -27,7 +27,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
               showControlsOnInitialize: false,
             ),
             autoPlay: true,
-            looping: true,
+            looping: false,
             aspectRatio: 9 / 16,
             fit: BoxFit.cover,
           ),
@@ -47,13 +47,14 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
     if (freeController != null) {
       state = state.addToUsedBetterPlayerRegistry(freeController);
     }
-    if(freeController==null){
-      debugPrint("no free controller");
-      freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.first);
-      freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
-              (controller) =>
-              !state.usedBetterPlayerControllerRegistry.contains(controller));
-    }
+    // if(freeController==null){
+    //   debugPrint("no free controller");
+    //   state.usedBetterPlayerControllerRegistry.first.pause();
+    //   freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.first);
+    //   freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
+    //           (controller) =>
+    //           !state.usedBetterPlayerControllerRegistry.contains(controller));
+    // }
 
     return freeController;
   }

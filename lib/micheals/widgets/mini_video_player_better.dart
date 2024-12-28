@@ -20,6 +20,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
   final bool show;
   final bool loop;
   final bool shouldHide;
+  final bool canBuild;
   final double radius;
   final Function()? onPlay;
   final Function()? onPause;
@@ -37,6 +38,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
     this.radius = 200,
     this.tapped,
     this.shouldHide = false,
+    this.canBuild = true,
     this.loop = false,
     this.onDuration,
     this.onPause,
@@ -57,25 +59,11 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   betterPlayerControllerStreamController = StreamController.broadcast();
   Timer? _timer;
   Duration _duration = const Duration();
-  File? thumbnail;
-// void initThumb()async{
-//   thumbnail = await Video.VideoThumbnail.thumbnailFile(
-//     video: widget.filePath,
-//     maxWidth: 400, // specify the width of the thumbnail, let the height auto-scaled to keep the source aspect ratio
-//     quality: 65,
-//   );
-//   WidgetsBinding.instance.addPostFrameCallback((callback){
-//     setState(() {
-//
-//     });
-//   });
-// }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Add observer
-//    initThumb();
-
   }
 
   @override
@@ -168,11 +156,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   bool _initialized = false;
 
   void _freeController() {
-    if (!_initialized) {
-      _initialized = true;
-      return;
-    }
-    if (_controller != null && _controller?.isVideoInitialized()==true) {
+    if (_controller != null ) {
       _controller?.removeEventsListener(playerEvent);
       _controller?.pause();
       _controller?.setVolume(0);
@@ -340,20 +324,23 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         key: Key(widget.filePath),
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
-          onVisibilityChanged(visibleFraction);
-          if (widget.shouldHide) {
-            _timer?.cancel();
-            _timer = null;
-            _timer = Timer(Duration(milliseconds: 500), () {
-              if (visibleFraction >= 0.1) {
-                _initializeController();
-              } else {
-                _freeController();
-              }
-            });
-            return;
-          }
-          if (visibleFraction >= 0.1) {
+         visiblity=visibleFraction;
+         setState(() {
+
+         });
+         if(!widget.canBuild) {
+           _timer?.cancel();
+           _timer = null;
+           _timer = Timer(Duration(milliseconds: 500), () {
+             if (visibilityInfo.visibleFraction >= 0.2) {
+               _initializeController();
+             } else {
+               _freeController();
+             }
+           });
+           return;
+         }
+          if (visibilityInfo.visibleFraction >= 0.2) {
             _initializeController();
           } else {
             _freeController();
@@ -388,12 +375,12 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                   ..scale(
                                     Platform.isAndroid ? -1.0 : 1.0,
                                     // Flip horizontally
-                                    1.2, // Flip vertically
+                                    1.3, // Flip vertically
                                   ),
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
                                     _controller?.isVideoInitialized() != true)
-                                    ? thumbnail!=null?Image.file(File(thumbnail!.path),fit: BoxFit.cover,):Container(
+                                    ? Container(
                                     color: Colors.black)
                                     : BetterPlayer(
                                   controller: _controller!,

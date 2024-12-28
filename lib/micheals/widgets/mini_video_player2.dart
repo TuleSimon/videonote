@@ -261,7 +261,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget> with WidgetsBindingOb
               clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color:Color(0xffF2F2F2),
+                color:Colors.black,
               ),
               width: widget.width,
               height: widget.height,
