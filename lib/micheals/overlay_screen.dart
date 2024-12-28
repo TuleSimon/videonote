@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
-
+import 'dart:async';
 import 'package:videonote/camera_audionote.dart';
 import 'package:videonote/micheals/main.dart';
 import 'package:flutter/foundation.dart';
+import 'package:screenshot/screenshot.dart';
 import 'package:camera/camera.dart' as Camera2;
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
@@ -294,11 +295,19 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   bool pause = false;
   bool switching = false;
+  String? imageFile;
 
   void init() async {
-    WidgetsBinding.instance.addPostFrameCallback((res) {
+    WidgetsBinding.instance.addPostFrameCallback((res) async {
       widget.onStart();
     });
+  }
+
+
+  @override
+  void dispose() {
+    imageFile=null;
+    screenshotController = null;
   }
 
   @override
@@ -308,6 +317,18 @@ class _OverlayScreenState extends State<OverlayScreen> {
   }
 
   bool frontCamera = true;
+  late ScreenshotController? screenshotController = ScreenshotController();
+
+  Future<Directory> _getPlatformSpecificDirectory() async {
+    if (Platform.isAndroid) {
+      return (await (getExternalStorageDirectory() ??
+          getDownloadsDirectory()?? getTemporaryDirectory()))!;
+    } else if (Platform.isIOS) {
+      return await getApplicationDocumentsDirectory();
+    } else {
+      throw Exception('Unsupported platform: ${Platform.operatingSystem}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,21 +348,31 @@ class _OverlayScreenState extends State<OverlayScreen> {
                       child: AspectRatio(
                           aspectRatio: 1 / 1,
                           child: ClipOval(
-                            child:
-                                widget.cameraController?.value.isInitialized !=
-                                        true
-                                    ? Container()
-                                    : Transform.scale(
-                                        scaleY: 1.3,
-                                        scaleX:Platform.isAndroid
-                                            ? frontCamera
-                                                ? -1.0
-                                                : 1.0
-                                            : 1.0,
-                                        child: Camera2.CameraPreview(
-                                            widget.cameraController!),
-                                      ),
-                          ))),
+                              child: Stack(
+                            children: [
+                              if (imageFile != null)
+                                Positioned.fill(
+                                    child: Image.file(File(imageFile!),
+                                        key: Key(imageFile!),
+                                        fit: BoxFit.cover)),
+                              widget.cameraController?.value.isInitialized !=
+                                      true && screenshotController==null
+                                  ? Container()
+                                  : Positioned.fill(
+                                      child: Screenshot(
+                                          controller: screenshotController!,
+                                          child: Transform.scale(
+                                            scaleY: 1.3,
+                                            scaleX: Platform.isAndroid
+                                                ? frontCamera
+                                                    ? -1.0
+                                                    : 1.0
+                                                : 1.0,
+                                            child: Camera2.CameraPreview(
+                                                widget.cameraController!),
+                                          ))),
+                            ],
+                          )))),
                 ),
                 Center(
                   child: ValueListenableBuilder<double>(
@@ -422,11 +453,30 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                       .isRecordingVideo ||
                                   widget.cameraController!.value
                                       .isRecordingPaused) {
-                                widget.cameraController!
+                                await widget.cameraController!
                                     .stopVideoRecording()
-                                    .then((res) {
+                                    .then((res) async {
                                   widget.flipCamera(res.path);
-                                });
+                                  final directory = await _getPlatformSpecificDirectory();
+                                  final imageFilee = await screenshotController?.captureAndSave(directory.path,
+                                      fileName: Uuid().v4()+".jpg");
+                                    //Capture Done
+                                    setState(() {
+                                      imageFile = imageFilee;
+                                      debugPrint(imageFilee??"");
+                                      screenshotController = ScreenshotController();
+                                      setState(() {
+
+                                      });
+                                    });
+                                  }).catchError((onError) {
+                                    debugPrint("error: "+onError.toString());
+                                    imageFile = null;
+                                    screenshotController = ScreenshotController();
+                                    setState(() {
+
+                                    });
+                                  });
 
                                 print("Stopped current recording.");
                               }

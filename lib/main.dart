@@ -169,7 +169,7 @@ class _MyAppState extends State<MyApp> {
                   return AnimatedSize(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeIn,
-                    child: MiniVideoPlayerBetter(
+                    child: VideoWidget(
                       width: currentlyTapped == index
                           ? context
                           .getSize()

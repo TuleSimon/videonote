@@ -113,15 +113,16 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void _handleDurationExceed() async {
     // Stop the recording and update the UI
-    stopVideoRecording();
     setState(() {
       isCurrentlyRecording = false;
       isValidDuration = true;
+      sendRecording = true;
     });
     setStatee?.call(() {});
-    lastRecord = _recordingController.stopRecording();
-    setState(() {});
-    setStatee?.call(() {});
+    _recordingController?.pauseRecording();
+    stopVideoRecording(
+        shouldDo: true, skip: true);
+
   }
 
   String formatDuration(int seconds) {
