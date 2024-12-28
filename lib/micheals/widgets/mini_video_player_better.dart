@@ -57,11 +57,25 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   betterPlayerControllerStreamController = StreamController.broadcast();
   Timer? _timer;
   Duration _duration = const Duration();
-
+  File? thumbnail;
+// void initThumb()async{
+//   thumbnail = await Video.VideoThumbnail.thumbnailFile(
+//     video: widget.filePath,
+//     maxWidth: 400, // specify the width of the thumbnail, let the height auto-scaled to keep the source aspect ratio
+//     quality: 65,
+//   );
+//   WidgetsBinding.instance.addPostFrameCallback((callback){
+//     setState(() {
+//
+//     });
+//   });
+// }
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Add observer
+//    initThumb();
+
   }
 
   @override
@@ -154,6 +168,10 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   bool _initialized = false;
 
   void _freeController() {
+    if (!_initialized) {
+      _initialized = true;
+      return;
+    }
     if (_controller != null && _controller?.isVideoInitialized()==true) {
       _controller?.removeEventsListener(playerEvent);
       _controller?.pause();
@@ -323,15 +341,24 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
           onVisibilityChanged(visibleFraction);
-          _timer?.cancel();
-          _timer = null;
-          _timer = Timer(Duration(milliseconds: 500), () {
-            if (visibilityInfo.visibleFraction >= 0.2) {
-              _initializeController();
-            } else {
-              _freeController();
-            }
-          });
+          if (widget.shouldHide) {
+            _timer?.cancel();
+            _timer = null;
+            _timer = Timer(Duration(milliseconds: 500), () {
+              if (visibleFraction >= 0.1) {
+                _initializeController();
+              } else {
+                _freeController();
+              }
+            });
+            return;
+          }
+          if (visibleFraction >= 0.1) {
+            _initializeController();
+          } else {
+            _freeController();
+          }
+
         },
         child: GestureDetector(
           onTap: () {
@@ -366,7 +393,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
                                     _controller?.isVideoInitialized() != true)
-                                    ? Container(
+                                    ? thumbnail!=null?Image.file(File(thumbnail!.path),fit: BoxFit.cover,):Container(
                                     color: Colors.black)
                                     : BetterPlayer(
                                   controller: _controller!,
