@@ -101,7 +101,7 @@ class _CameraPageState extends State<VideNotebutton> {
       0], // Fallback to the first camera if no front camera is found
     );
     cameraController =
-        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
+        Camera2.CameraController(frontCamera, ResolutionPreset.low);
   }
 
   @override

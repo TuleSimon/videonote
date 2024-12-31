@@ -156,6 +156,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
     // ref.read(videoControllerProvider.notifier).disposeControllerById(_controllerData?.id??"");
     WidgetsBinding.instance.removeObserver(this); // Remove observer
     disposee();
+    debugPrint("Disposed");
     super.dispose();
   }
 
@@ -210,6 +211,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
       controller?.setVolume(1.0);
       controller?.seekTo(0);
       controller?.play();
+      FocusScope.of(context).unfocus();
       widget.onPlay?.call();
       return;
     }
@@ -241,6 +243,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
       if (visibility > 0.1) {
         controller?.seekTo(0).then((onValue) {
           controller?.setVolume(1);
+          FocusScope.of(context).unfocus();
           controller?.play();
         });
       }

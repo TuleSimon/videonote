@@ -14,7 +14,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
 
   /// Initialize the `betterPlayerControllerRegistry` with 3 controllers.
   void initializeControllers() {
-    dispose();
+
     final controllers = <BetterPlayerController>[];
     for (int index = 0; index < (3); index++) {
       controllers.add(

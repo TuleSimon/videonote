@@ -23,6 +23,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
   final bool canBuild;
   final double radius;
   final Function()? onPlay;
+  final Future<bool> Function()? isLastVideo;
   final Function()? onPause;
   final Function(Duration)? onDuration;
   final Function(BetterPlayerController)? onController;
@@ -35,6 +36,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
     this.onPlay,
     this.width = 200,
     this.height = 200,
+    this.isLastVideo,
     this.radius = 200,
     this.tapped,
     this.shouldHide = false,
@@ -130,10 +132,10 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
           _controller?.setupDataSource(BetterPlayerDataSource(
             BetterPlayerDataSourceType.file,
             bufferingConfiguration: BetterPlayerBufferingConfiguration(
-              minBufferMs: 1000,
-              maxBufferMs: 2000,
+              minBufferMs: 500,
+              maxBufferMs: 1000,
               bufferForPlaybackMs: 500,
-              bufferForPlaybackAfterRebufferMs: 1000,
+              bufferForPlaybackAfterRebufferMs: 500,
             ),
             widget.filePath,
           ));
@@ -157,21 +159,26 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   bool _initialized = false;
 
   void _freeController() {
-    if (_controller != null ) {
-      _controller?.removeEventsListener(playerEvent);
-      _controller?.pause();
-      _controller?.setVolume(0);
-      _controller?.videoPlayerController?.removeListener(playListener);
-      ref.read(videoControllerProvider.notifier).freeBetterPlayerController(_controller);
-      _controller = null;
-      if (!betterPlayerControllerStreamController.isClosed) {
-        betterPlayerControllerStreamController.add(null);
+    try {
+      if (_controller != null) {
+        _controller?.removeEventsListener(playerEvent);
+        _controller?.pause();
+        _controller?.setVolume(0);
+        _controller?.videoPlayerController?.removeListener(playListener);
+        ref.read(videoControllerProvider.notifier).freeBetterPlayerController(
+            _controller);
+        _controller = null;
+        if (!betterPlayerControllerStreamController.isClosed) {
+          betterPlayerControllerStreamController.add(null);
+        }
+        _initialized = false;
       }
-      _initialized = false;
     }
+    catch(e){}
   }
 
-  void playerEvent(BetterPlayerEvent event) {
+  int leftview = 2;
+  void playerEvent(BetterPlayerEvent event) async{
     if (!mounted) return;
     if (_controller?.isVideoInitialized() != true) return;
     if (event.betterPlayerEventType ==
@@ -194,13 +201,25 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       final progress = event.parameters?['progress'] as Duration?;
       final totalDuration =
       event.parameters?['duration'] as Duration?;
-
-      if (progress != null && totalDuration != null && widget.tapped == true) {
+      final lastVideo = await widget.isLastVideo?.call();
+      if (progress != null && totalDuration != null ) {
         setState(() {
-          _currentProgress = progress.inMilliseconds /
-              totalDuration.inMilliseconds;
+          if(widget.tapped==true) {
+            _currentProgress = progress.inMilliseconds /
+                totalDuration.inMilliseconds;
+          }
           if(_currentProgress>=0.99){
-            widget.onPause?.call();
+            if(widget.tapped == true) {
+              widget.onPause?.call();
+            }
+            if (visiblity > 0.2) {
+
+              if (lastVideo == true || leftview>=0) {
+                leftview -= 1;
+                _controller?.seekTo(Duration(seconds: 0));
+                _controller?.play();
+              }
+            }
           }
         });
       } else {
@@ -238,6 +257,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
   @override
   void dispose() {
+    _freeController();
     betterPlayerControllerStreamController.close();
     super.dispose();
   }
@@ -254,6 +274,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         _controller?.setVolume(1.0);
         _controller?.seekTo(const Duration(seconds: 0));
         _controller?.play();
+        FocusScope.of(context).unfocus();
         widget.onPlay?.call();
         return;
       }
@@ -291,12 +312,12 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     if (_controller?.isVideoInitialized() != true) return;
     if (widget.tapped != null && widget.tapped != true ) {
       _controller?.setVolume(0.0);
-      _controller?.setLooping(true);
-      _controller?.play();
+      _controller?.setLooping(false);
     }
 
     if (widget.tapped != null && widget.tapped == true) {
       if(oldWidget.tapped!=true) {
+        FocusScope.of(context).unfocus();
         _controller?.seekTo(Duration(seconds: 0));
         _controller?.setVolume(1.0);
         _controller?.setLooping(false);
@@ -305,6 +326,9 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     }
   }
 
+
+  bool wasInvisible = true;
+
   @override
   Widget build(BuildContext context) {
     return VisibilityDetector(
@@ -312,23 +336,23 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
          visiblity=visibleFraction;
-         if(!widget.canBuild) {
+         //view just became visible init contact
+          debugPrint("${visibleFraction} ${widget.radius}");
+         if(wasInvisible && visibleFraction>0) {
+           wasInvisible=false;
            _timer?.cancel();
            _timer = null;
-           _timer = Timer(Duration(milliseconds: 500), () {
-             if (visibilityInfo.visibleFraction >= 0.2) {
+           _timer = Timer(Duration(milliseconds: 200), () {
                _initializeController();
-             } else {
-               _freeController();
-             }
            });
            return;
          }
-          if (visibilityInfo.visibleFraction >= 0.2) {
-            _initializeController();
-          } else {
-            _freeController();
-          }
+         else if(!wasInvisible && visibleFraction<=0){
+           leftview = 2;
+           _timer?.cancel();
+           wasInvisible = true;
+           _freeController();
+         }
 
         },
         child: GestureDetector(
@@ -359,7 +383,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                   ..scale(
                                     Platform.isAndroid ? -1.0 : 1.0,
                                     // Flip horizontally
-                                    1.3, // Flip vertically
+                                    1.2, // Flip vertically
                                   ),
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
@@ -406,7 +430,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                         max: 1.0,
                       ),
                     )),
-              if (!_isPlaying && widget.show)
+
+              if (!_isPlaying && (widget.show || widget.tapped!=true))
                 Center(
                   child: GestureDetector(
                     onTap: _togglePlayPause,
