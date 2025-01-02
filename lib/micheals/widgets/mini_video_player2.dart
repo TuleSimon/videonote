@@ -284,7 +284,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
                       transform: Matrix4.identity()
                         ..scale(
                           Platform.isAndroid ? -1.0 : 1.0,
-                          1.3, // Flip vertically
+                          1.0, // Flip vertically
                         ),
                       child:
                           // widget.shouldHide

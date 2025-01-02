@@ -95,6 +95,7 @@ flutter:
     - packages/videonote/assets/delete.svg
     - packages/videonote/assets/flash_icon.svg
     - packages/videonote/assets/mask.png
+    - packages/videonote/assets/mask3.png
     - packages/videonote/assets/pause.svg
     - packages/videonote/assets/pause2.svg
     - packages/videonote/assets/play.svg

@@ -9,6 +9,8 @@ class Assets {
   static const String assetsDelete = 'assets/delete.svg';
   static const String assetsFlashIcon = 'assets/flash_icon.svg';
   static const String assetsMask = 'assets/mask.png';
+  static const String assetsMask2 = 'lib/assets/mask2.png';
+  static const String assetsMask3 = 'assets/mask3.png';
   static const String assetsPause = 'assets/pause.svg';
   static const String assetsPause2 = 'assets/pause2.svg';
   static const String assetsPlay = 'assets/play.svg';
@@ -21,6 +23,7 @@ class Assets {
   static const String libAssetsDelete = 'lib/assets/delete.svg';
   static const String libAssetsFlashIcon = 'lib/assets/flash_icon.svg';
   static const String libAssetsMask = 'lib/assets/mask.png';
+  static const String libAssetsMask3 = 'lib/assets/mask3.png';
   static const String libAssetsPause = 'lib/assets/pause.svg';
   static const String libAssetsPause2 = 'lib/assets/pause2.svg';
   static const String libAssetsPlay = 'lib/assets/play.svg';

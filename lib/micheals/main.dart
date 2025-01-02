@@ -350,7 +350,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
     // Load the mask from assets
     final byteData =
-    await rootBundle.load('packages/videonote/assets/mask.png');
+    await rootBundle.load('packages/videonote/assets/mask3.png');
     final file = File(maskPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return maskPath;
@@ -440,7 +440,12 @@ class _CameraPageState extends State<VideNotebutton> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+
+
+
+      // ffmpegCommand =
+      // '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
     }
 
     print('FFmpeg Command: $ffmpegCommand');
