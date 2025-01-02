@@ -47,7 +47,7 @@ dependencies:
   meta: ^1.10.0
   cupertino_will_pop_scope: ^1.2.1
   better_player:
-    #    path: ../EXT_betterplayer
+#        path: ../EXT_betterplayer
     git:
       url: https://github.com/tezdacom/EXT_betterplayer.git
       ref: main
@@ -59,6 +59,8 @@ dependencies:
   share_plus: ^10.1.2
   uuid: ^4.5.1
   #visibility_detector: ^0.4.0+2
+
+
 
 dev_dependencies:
   flutter_test:

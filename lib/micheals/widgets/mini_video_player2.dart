@@ -152,10 +152,9 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
 
   @override
   void dispose() {
-    // _controller?.videoPlayerController?.removeListener(_onVideoProgress);
-    // ref.read(videoControllerProvider.notifier).disposeControllerById(_controllerData?.id??"");
+     controller?.stop();
+     controller?.dispose();
     WidgetsBinding.instance.removeObserver(this); // Remove observer
-    disposee();
     debugPrint("Disposed");
     super.dispose();
   }
@@ -183,8 +182,9 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
         // Widget is not visible
         widget.oninvisible?.call();
         debugPrint("curently invisible");
+        disposee2();
       }
-      disposee2();
+
     }
   }
 
@@ -239,8 +239,8 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
   void didUpdateWidget(VideoWidget oldWidget) {
     if (widget.tapped != true && widget.tapped != null) {
       controller?.setVolume(0);
-    } else if (widget.tapped == true) {
-      if (visibility > 0.1) {
+    } else if (widget.tapped == true && oldWidget.tapped!=true) {
+      if (visibility > 0.1 ) {
         controller?.seekTo(0).then((onValue) {
           controller?.setVolume(1);
           controller?.play();

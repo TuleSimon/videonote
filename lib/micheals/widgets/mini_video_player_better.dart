@@ -18,9 +18,8 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
   final double width;
   final double height;
   final bool show;
-  final bool loop;
-  final bool shouldHide;
   final bool canBuild;
+  final bool shouldHide;
   final double radius;
   final Function()? onPlay;
   final Future<bool> Function()? isLastVideo;
@@ -41,7 +40,6 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
     this.tapped,
     this.shouldHide = false,
     this.canBuild = true,
-    this.loop = false,
     this.onDuration,
     this.onPause,
     this.onController,
@@ -89,7 +87,6 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     try {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((callback) {
-          setState(() {
             if (_currentProgress > 0.5) {
               final isVideoEnded =
                   (_controller?.videoPlayerController?.value.position ??
@@ -102,16 +99,20 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                               100));
               // debugPrint("Video edned " + isVideoEnded.toString());
               if (isVideoEnded) {
-                _currentProgress = 0;
+
                 WidgetsBinding.instance.addPostFrameCallback((res) {
+                  setState(() {
+                    _currentProgress = 0;});
                   widget.onPause?.call();
                 });
               }
-            }
 
+
+              setState(() {
             _isPlaying =
                 _controller?.videoPlayerController?.value.isPlaying ?? false;
-          });
+              });
+          }
         });
       }
     }
@@ -128,17 +129,19 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       if (widget.filePath.isNotEmpty) {
         if (_controller == null) {
           _controller =
-              ref.read(videoControllerProvider.notifier).getBetterPlayerController();
-          _controller?.setupDataSource(BetterPlayerDataSource(
-            BetterPlayerDataSourceType.file,
-            bufferingConfiguration: BetterPlayerBufferingConfiguration(
-              minBufferMs: 500,
-              maxBufferMs: 1000,
-              bufferForPlaybackMs: 500,
-              bufferForPlaybackAfterRebufferMs: 500,
-            ),
-            widget.filePath,
-          ));
+              ref.read(videoControllerProvider.notifier).getBetterPlayerController(widget.filePath);
+          if(_controller?.betterPlayerDataSource?.url!=widget.filePath){
+            _controller?.setupDataSource(BetterPlayerDataSource(
+              BetterPlayerDataSourceType.file,
+              bufferingConfiguration: BetterPlayerBufferingConfiguration(
+                minBufferMs: 500,
+                maxBufferMs: 1000,
+                bufferForPlaybackMs: 500,
+                bufferForPlaybackAfterRebufferMs: 500,
+              ),
+              widget.filePath,
+            ));
+          }
           _controller?.setVolume(0);
 
 
@@ -231,9 +234,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       // widget.onPause?.call();
     }
     if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-      setState(() {
         _isPlaying = true;
-      });
+
     }
   }
 
@@ -257,7 +259,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
   @override
   void dispose() {
-    _freeController();
+    _controller?.videoPlayerController?.removeListener(playListener);
     betterPlayerControllerStreamController.close();
     super.dispose();
   }
@@ -309,11 +311,16 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   @override
   void didUpdateWidget(covariant MiniVideoPlayerBetter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_controller?.isVideoInitialized() != true) return;
-    if (widget.tapped != null && widget.tapped != true ) {
-      _controller?.setVolume(0.0);
-      _controller?.setLooping(false);
+    if(widget.canBuild && !oldWidget.canBuild){
+      if(_controller==null ){
+        _initializeController();
+      }
     }
+      if (widget.tapped != null && widget.tapped != true ) {
+        _controller?.setVolume(0.0);
+        _controller?.setLooping(false);
+      }
+    if (_controller?.isVideoInitialized() != true) return;
 
     if (widget.tapped != null && widget.tapped == true) {
       if(oldWidget.tapped!=true) {
@@ -335,6 +342,10 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
          visiblity=visibleFraction;
+         if(!widget.canBuild){
+           debugPrint("---------------- Scrolling so not buildinh Scrolling");
+           return;
+         }
          //view just became visible init contact
           debugPrint("${visibleFraction} ${widget.radius}");
          if(wasInvisible && visibleFraction>0) {
@@ -430,8 +441,13 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                       ),
                     )),
 
-              if (!_isPlaying && (widget.show || widget.tapped!=true))
-                Center(
+              if (_controller?.videoPlayerController?.value?.isPlaying!=true && (widget.show || widget.tapped!=true))
+                  Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      child: UnconstrainedBox(
                   child: GestureDetector(
                     onTap: _togglePlayPause,
                     child: SvgPicture.asset(
@@ -440,8 +456,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                       width: 65,
                     ),
                   ),
-                ),
-              if (_isPlaying && widget.show)
+                )),
+              if (_controller?.videoPlayerController?.value?.isPlaying==true && widget.show)
                 Center(
                   child: GestureDetector(
                     onTap: _togglePlayPause,

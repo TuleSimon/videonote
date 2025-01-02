@@ -101,7 +101,7 @@ class _CameraPageState extends State<VideNotebutton> {
       0], // Fallback to the first camera if no front camera is found
     );
     cameraController =
-        Camera2.CameraController(frontCamera, ResolutionPreset.low);
+        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
   }
 
   @override
@@ -1183,7 +1183,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
             // Set zoom to the lowest (minZoom)
             try {
-              await cameraController?.setZoomLevel(1.25);
+              await cameraController?.setZoomLevel(1.2);
             } catch (e) {}
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
