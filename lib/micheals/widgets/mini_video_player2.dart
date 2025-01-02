@@ -243,7 +243,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
       if (visibility > 0.1) {
         controller?.seekTo(0).then((onValue) {
           controller?.setVolume(1);
-          FocusScope.of(context).unfocus();
           controller?.play();
         });
       }

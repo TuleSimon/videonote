@@ -317,7 +317,6 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
     if (widget.tapped != null && widget.tapped == true) {
       if(oldWidget.tapped!=true) {
-        FocusScope.of(context).unfocus();
         _controller?.seekTo(Duration(seconds: 0));
         _controller?.setVolume(1.0);
         _controller?.setLooping(false);
