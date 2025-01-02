@@ -291,7 +291,7 @@ class _CameraPageState extends State<VideNotebutton> {
         return null;
       }
     }
-    if (Platform.isIOS) {
+    if (false) {
       try {
         final result = await _methodChannel.invokeMethod('concatVideos', {
           'videoPaths': videoPaths,
@@ -380,7 +380,7 @@ class _CameraPageState extends State<VideNotebutton> {
         print('Failed to concatenate videos.');
         return null;
       }
-      if (Platform.isIOS) {
+      if (false) {
         // Call the iOS MethodChannel to clip the video
         try {
           final result = await _methodChannel.invokeMethod('clipVideo', {
@@ -407,11 +407,12 @@ class _CameraPageState extends State<VideNotebutton> {
         }
       }
       // Apply the mask to the concatenated video
+
       ffmpegCommand =
       '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     } else {
       print('Input Path: $inputPath');
-      if (Platform.isIOS) {
+      if (false) {
         // Call the iOS MethodChannel to clip the video
         try {
           final result = await _methodChannel.invokeMethod('clipVideo', {

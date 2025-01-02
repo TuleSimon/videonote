@@ -7,6 +7,7 @@ import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
 import 'package:videonote/videonote.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -107,6 +108,7 @@ class _MyAppState extends State<MyApp> {
                     debugPrint("here $file");
                     recording.add(file);
                     shouldHide = false;
+                     final result = await Share.shareXFiles([XFile(file)]);
                     setState(() {});
                   },
                   onStarted: () {
@@ -139,6 +141,7 @@ class _MyAppState extends State<MyApp> {
                     recording.add(file);
                     shouldHide = false;
                     setState(() {});
+                    final result = await Share.shareXFiles([XFile(file)]);
                   },
                   child: Icon(Icons.camera),
                   onTap: () async {}),
@@ -169,8 +172,7 @@ class _MyAppState extends State<MyApp> {
                   return AnimatedSize(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeIn,
-                    child: MiniVideoPlayerBetter(
-                      radius: double.parse(index.toString()),
+                    child: VideoWidget(
                       width: currentlyTapped == index
                           ? context
                           .getSize()
