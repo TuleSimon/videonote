@@ -279,17 +279,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
                   child: SizedBox(
                     width: widget.width,
                     height: widget.height,
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..scale(
-                          Platform.isAndroid ? -1.0 : 1.0,
-                          1.0, // Flip vertically
-                        ),
-                      child:
-                          // widget.shouldHide
-                          //     ? Container(color: Colors.black)
-                          //     :
+                    child:
                           AspectRatio(
                               aspectRatio: 16 / 9,
                               child: NativeVideoPlayerView(
@@ -305,7 +295,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
                                 },
                               )),
                     ),
-                  ),
                 ),
               ),
             ),

@@ -101,7 +101,7 @@ class _CameraPageState extends State<VideNotebutton> {
       0], // Fallback to the first camera if no front camera is found
     );
     cameraController =
-        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
+        Camera2.CameraController(frontCamera, ResolutionPreset.high);
   }
 
   @override
@@ -308,6 +308,8 @@ class _CameraPageState extends State<VideNotebutton> {
     // Create a temporary text file to list all video files
     final concatFilePath = await _createConcatFile(videoPaths);
 
+
+
     // FFmpeg command to concatenate videos
     String concatCommand =
         '-f concat -safe 0 -i "$concatFilePath"  -map 0:v -map 0:a -c:a copy -c:v copy "$tempOutputPath"';
@@ -440,8 +442,10 @@ class _CameraPageState extends State<VideNotebutton> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
-
+          '-i "$inputPath" -i "$maskPath" ' +
+              (Platform.isAndroid ? '-filter_complex "[0:v]hflip,scale=480:-1,crop=480:480:(iw-480)/2:(ih-480)/2[video];' : '-filter_complex "[0:v]scale=480:-1,crop=480:480:(iw-480)/2:(ih-480)/2[video];') +
+              '[1:v]scale=480:480[mask];[video][mask]overlay=0:0[v]" ' +
+              '-map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
 
 
       // ffmpegCommand =
@@ -497,6 +501,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void saveFile(String? path) {
     try {
+      debugPrint("hereeeee");
       if (_recordingStartTime == null && !skip) return;
       debugPrint('Video saved: ${path}');
       final Map<String, dynamic> videoDetails = {};
@@ -537,6 +542,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
   void stopVideoRecording({bool shouldDo = true, bool skip = false}) async {
     if (cameraController?.value?.isRecordingVideo == true) {
+      debugPrint("was recording");
       cameraController?.setFlashMode(Camera2.FlashMode.off);
       isCurrentlyRecording = false;
       final file = await cameraController?.stopVideoRecording();
@@ -947,9 +953,9 @@ class _CameraPageState extends State<VideNotebutton> {
                                                     },
                                                     onVerticalDragUpdate:
                                                         (details) {
-                                                      debugPrint(
-                                                          "moving ${details
-                                                              .delta.dy}");
+                                                      // debugPrint(
+                                                      //     "moving ${details
+                                                      //         .delta.dy}");
                                                       setState(() {
                                                         // Dragging up: only allow up movement or return to 0
                                                         if (buttonOffsetX >=
@@ -1184,12 +1190,18 @@ class _CameraPageState extends State<VideNotebutton> {
               return;
             }
             final _minZoom = await cameraController?.getMinZoomLevel() ?? 1.0;
+            final maxExposure = await cameraController?.getMaxExposureOffset() ?? 3.0;
             final _max = await cameraController?.getMaxZoomLevel() ?? 2.0;
-            debugPrint("max zoom ${_minZoom} $_max");
+            debugPrint("max exposure $maxExposure max zoom ${_minZoom} $_max");
 
             // Set zoom to the lowest (minZoom)
             try {
               await cameraController?.setZoomLevel(1.2);
+              await cameraController?.setFocusPoint(Offset(0.5, 0.5));  // x: 0.5, y: 0.5 -> center of the frame
+
+              // Set exposure offset to max exposure value
+              await cameraController?.setExposureOffset(maxExposure);  // Adjust exposure
+
             } catch (e) {}
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
@@ -1347,7 +1359,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
         // Update only if the change is significant
         if (deltaY.abs() > 3 || deltaX.abs() > 3) {
-          debugPrint("moving ${details.offsetFromOrigin.dy}");
+          // debugPrint("moving ${details.offsetFromOrigin.dy}");
           setState(() {
             // Dragging up: only allow up movement or return to 0
             if (buttonOffsetX >= -5) {

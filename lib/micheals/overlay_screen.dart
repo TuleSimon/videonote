@@ -13,14 +13,17 @@ import 'package:camera/camera.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/widgets/video_processor.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_full_gpl/ffmpeg_kit_config.dart';
 import 'package:ffmpeg_kit_flutter_full_gpl/return_code.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
-
+import 'dart:isolate';
 import 'hole_widget.dart';
 
 class OverlayScreen extends StatefulWidget {
@@ -330,6 +333,52 @@ class _OverlayScreenState extends State<OverlayScreen> {
     }
   }
 
+  Future<String?> flipVideo(String inputPath) async {
+    // Generate output path
+    final directory = await _getPlatformSpecificDirectory();
+    final fileName =Uuid().v4();
+    final outputPath = '${directory.path}/flipped_$fileName.mp4';
+
+    // FFmpeg command for horizontal flip
+    final flipCommand =
+        '-i "$inputPath" -vf "hflip,format=yuv420p" -c:v libx264 -preset ultrafast -crf 23 -c:a copy "$outputPath"';
+    //
+    // '-i "$inputPath" -vf "hflip" -c:v libx264 -preset ultrafast -crf 23 -c:a copy "$outputPath"';
+
+    // Enable FFmpeg log callbacks for detailed output
+    FFmpegKitConfig.enableLogCallback((log) {
+      print('FFmpeg Log: ${log.getMessage()}');
+    });
+
+    FFmpegKitConfig.enableStatisticsCallback((statistics) {
+      print(
+          'FFmpeg Stats: Time=${statistics.getTime()}ms, Size=${statistics.getSize()} bytes');
+    });
+
+    // Execute the FFmpeg command
+    print('Running FFmpeg command: $flipCommand');
+    final flipResult = await FFmpegKit.execute(flipCommand);
+    final returnCode = await flipResult.getReturnCode();
+
+    if (returnCode != null && returnCode.isValueSuccess()) {
+      print('Video flipped successfully: $outputPath');
+      return outputPath;
+    } else {
+      // Log detailed error information
+      final logMessages = await flipResult.getLogsAsString();
+      print('Error flipping video. FFmpeg Logs: $logMessages');
+
+      final failureMessage = await flipResult.getFailStackTrace();
+      print('Failure Message: $failureMessage');
+
+      return null;
+    }
+  }
+
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -456,7 +505,15 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 await widget.cameraController!
                                     .stopVideoRecording()
                                     .then((res) async {
-                                  widget.flipCamera(res.path);
+                                      if(frontCamera && Platform.isAndroid){
+                                        final flippedVideoPath = await flipVideo(res.path);
+                                        if(flippedVideoPath!=null){
+                                          widget.flipCamera(flippedVideoPath);
+                                        }
+                                      }
+                                      else {
+                                        widget.flipCamera(res.path);
+                                      }
                                   final directory = await _getPlatformSpecificDirectory();
                                   final imageFilee = await screenshotController?.captureAndSave(directory.path,
                                       fileName: Uuid().v4()+".jpg");

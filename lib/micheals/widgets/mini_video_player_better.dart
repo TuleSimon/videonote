@@ -391,9 +391,9 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                 alignment: Alignment.center,
                                 transform: Matrix4.identity()
                                   ..scale(
-                                    Platform.isAndroid ? -1.0 : 1.0,
+                                    1.0,
                                     // Flip horizontally
-                                    1.0, // Flip vertically
+                                    1, // Flip vertically
                                   ),
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
