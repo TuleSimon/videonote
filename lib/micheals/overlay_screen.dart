@@ -411,12 +411,12 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                       child: Screenshot(
                                           controller: screenshotController!,
                                           child: Transform.scale(
-                                            scaleY: 1.3,
+                                            scaleY: 1.8,
                                             scaleX: Platform.isAndroid
                                                 ? frontCamera
-                                                    ? -1.0
-                                                    : 1.0
-                                                : 1.0,
+                                                    ? -1.1
+                                                    : 1.1
+                                                : 1.1,
                                             child: Camera2.CameraPreview(
                                                 widget.cameraController!),
                                           ))),
@@ -544,6 +544,10 @@ class _OverlayScreenState extends State<OverlayScreen> {
                               if (otherCameras.lensDirection !=
                                   Camera2.CameraLensDirection.front) {
                                 frontCamera = false;
+                                setState(() {});
+                              }
+                              else{
+                                frontCamera = true;
                                 setState(() {});
                               }
 

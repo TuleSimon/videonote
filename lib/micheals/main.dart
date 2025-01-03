@@ -274,6 +274,7 @@ class _CameraPageState extends State<VideNotebutton> {
       isLocked = false;
       buttonOffsetY = 0;
       buttonOffsetX = 0;
+      _recordingStartTime = null;
       disposeOverlay();
       lastRecord = null;
       lockObs = 0;
@@ -571,6 +572,10 @@ class _CameraPageState extends State<VideNotebutton> {
       _recordingController.startRecording();
       setState(() {});
     }
+    else{
+      cameraController?.stopVideoRecording();
+      widget.onCancel?.call();
+    }
   }
 
   @override
@@ -585,6 +590,8 @@ class _CameraPageState extends State<VideNotebutton> {
     isValidDuration = _recordingController.isRecordingValid;
     lastRecord = _recordingController.stopRecording();
     stopVideoRecording(shouldDo: false);
+    _recordingStartTime = null;
+    disposeOverlay();
     _videoPaths.clear();
     _videoPath = null;
     lockObs = 0;
@@ -1196,11 +1203,13 @@ class _CameraPageState extends State<VideNotebutton> {
 
             // Set zoom to the lowest (minZoom)
             try {
-              await cameraController?.setZoomLevel(1.2);
-              await cameraController?.setFocusPoint(Offset(0.5, 0.5));  // x: 0.5, y: 0.5 -> center of the frame
-
-              // Set exposure offset to max exposure value
-              await cameraController?.setExposureOffset(maxExposure);  // Adjust exposure
+              await cameraController?.setZoomLevel(1);
+              if(Platform.isAndroid) {
+                await cameraController?.setFocusPoint(
+                    Offset(0.5, 0.5)); // x: 0.5, y: 0.5 -> center of the frame
+                // Set exposure offset to max exposure value
+                await cameraController?.setExposureOffset(maxExposure);
+              }// Adjust exposure
 
             } catch (e) {}
             myOverayEntry = getMyOverlayEntry(
