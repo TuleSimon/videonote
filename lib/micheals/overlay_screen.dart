@@ -411,12 +411,12 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                       child: Screenshot(
                                           controller: screenshotController!,
                                           child: Transform.scale(
-                                            scaleY: 1.8,
+                                            scaleY: 1.3,
                                             scaleX: Platform.isAndroid
                                                 ? frontCamera
-                                                    ? -1.1
-                                                    : 1.1
-                                                : 1.1,
+                                                    ? -1.0
+                                                    : 1.0
+                                                : 1.0,
                                             child: Camera2.CameraPreview(
                                                 widget.cameraController!),
                                           ))),

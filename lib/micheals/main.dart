@@ -101,7 +101,7 @@ class _CameraPageState extends State<VideNotebutton> {
       0], // Fallback to the first camera if no front camera is found
     );
     cameraController =
-        Camera2.CameraController(frontCamera, ResolutionPreset.high);
+        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
   }
 
   @override
@@ -446,7 +446,8 @@ class _CameraPageState extends State<VideNotebutton> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
 
-      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/4:(ih-400)/4[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+//      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
 
 
 
@@ -1239,14 +1240,6 @@ return mp4FilePath;
             try {
 
               await cameraController?.setZoomLevel(1);
-              if(Platform.isAndroid) {
-                final maxExposure = await cameraController?.getMaxExposureOffset() ?? 3.0;
-                debugPrint("max exposure $maxExposure max zoom ${_minZoom} $_max");
-                await cameraController?.setFocusPoint(
-                    Offset(0.5, 0.5)); // x: 0.5, y: 0.5 -> center of the frame
-                // Set exposure offset to max exposure value
-                await cameraController?.setExposureOffset(maxExposure);
-              }// Adjust exposure
 
             } catch (e) {}
             myOverayEntry = getMyOverlayEntry(
