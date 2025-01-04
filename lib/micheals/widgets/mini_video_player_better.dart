@@ -204,7 +204,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       final progress = event.parameters?['progress'] as Duration?;
       final totalDuration =
       event.parameters?['duration'] as Duration?;
-      if (progress != null && totalDuration != null) {
+      if (progress != null && totalDuration != null ) {
         setState(() {
           if (widget.tapped == true) {
             _currentProgress = progress.inMilliseconds /
@@ -213,6 +213,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         });
 
         if (_currentProgress >= 0.99) {
+          final lastVideo = await widget?.isLastVideo?.call();
           if (widget.tapped == true) {
             widget.onPause?.call();
           }
@@ -231,7 +232,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
           }
         }
       }
-    }
+      }
     if (event.betterPlayerEventType == BetterPlayerEventType.finished) {
       // widget.onPause?.call();
     }
