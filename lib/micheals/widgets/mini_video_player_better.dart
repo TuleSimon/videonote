@@ -204,30 +204,32 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       final progress = event.parameters?['progress'] as Duration?;
       final totalDuration =
       event.parameters?['duration'] as Duration?;
-      final lastVideo = await widget.isLastVideo?.call();
-      if (progress != null && totalDuration != null ) {
+      if (progress != null && totalDuration != null) {
         setState(() {
-          if(widget.tapped==true) {
+          if (widget.tapped == true) {
             _currentProgress = progress.inMilliseconds /
                 totalDuration.inMilliseconds;
           }
-          if(_currentProgress>=0.99){
-            if(widget.tapped == true) {
-              widget.onPause?.call();
-            }
-            if (visiblity > 0.2) {
+        });
 
-              if (lastVideo == true || leftview>=0) {
+        if (_currentProgress >= 0.99) {
+          if (widget.tapped == true) {
+            widget.onPause?.call();
+          }
+
+          if (visiblity > 0.2) {
+            if (lastVideo == true || leftview >= 0) {
+              setState(() {
                 leftview -= 1;
                 _controller?.seekTo(Duration(seconds: 0));
                 _controller?.play();
-              }
+              });
             }
+          } else {
+            _currentProgress = 0;
+            debugPrint("Progress or duration is null");
           }
-        });
-      } else {
-        _currentProgress = 0;
-        debugPrint("Progress or duration is null");
+        }
       }
     }
     if (event.betterPlayerEventType == BetterPlayerEventType.finished) {

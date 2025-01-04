@@ -383,6 +383,9 @@ class _CameraPageState extends State<VideNotebutton> {
         print('Failed to concatenate videos.');
         return null;
       }
+      else{
+        widget?.onAddFile(mergedVideoPath);
+      }
       if (false) {
         // Call the iOS MethodChannel to clip the video
         try {
@@ -442,11 +445,9 @@ class _CameraPageState extends State<VideNotebutton> {
       }
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
-      ffmpegCommand =
-          '-i "$inputPath" -i "$maskPath" ' +
-              (Platform.isAndroid ? '-filter_complex "[0:v]hflip,scale=480:-1,crop=480:480:(iw-480)/2:(ih-480)/2[video];' : '-filter_complex "[0:v]scale=480:-1,crop=480:480:(iw-480)/2:(ih-480)/2[video];') +
-              '[1:v]scale=480:480[mask];[video][mask]overlay=0:0[v]" ' +
-              '-map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+
+      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+
 
 
       // ffmpegCommand =
@@ -500,7 +501,36 @@ class _CameraPageState extends State<VideNotebutton> {
     }
   }
 
-  void saveFile(String? path) {
+  Future<String> renameOrCopyTmpToMp4(String tmpFilePath) async {
+    // Check if the file exists
+    final tmpFile = File(tmpFilePath);
+    if (!tmpFile.existsSync()) {
+      print("Error: Temporary file does not exist at path $tmpFilePath");
+      return "";
+    }
+
+    // Create the target MP4 file path
+    final directory = tmpFile.parent.path;
+    final fileNameWithoutExtension = tmpFile.uri.pathSegments.last.split('.').first;
+    final mp4FilePath = '$directory/$fileNameWithoutExtension.mp4';
+
+    // Rename or copy the file to the new path
+    try {
+      // Try renaming the file
+      await tmpFile.rename(mp4FilePath);
+      print("File renamed successfully to $mp4FilePath");
+    } catch (e) {
+      // If renaming fails (e.g., due to cross-device issues), copy the file
+      print("Renaming failed, attempting to copy instead...");
+      await tmpFile.copy(mp4FilePath);
+      print("File copied successfully to $mp4FilePath");
+    }
+return mp4FilePath;
+
+  }
+
+
+  void saveFile(String? path) async{
     try {
       debugPrint("hereeeee");
       if (_recordingStartTime == null && !skip) return;
@@ -515,19 +545,25 @@ class _CameraPageState extends State<VideNotebutton> {
       videoDetails['size'] =
       '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
       print(videoDetails);
-      if (duration.inSeconds >= 2 || skip) {
+      if (duration.inSeconds >= 1 || skip) {
         debugPrint("Reach here duration");
+        String? newPath;
+        if (_videoPaths.isEmpty) {
+           newPath = await renameOrCopyTmpToMp4(path??"");
+          _videoPath = newPath;
+          widget?.onAddFile(newPath!);
+          sendOnLock();
+          setState(() {
 
+          });
+        } else {
+          _videoPaths.add(path ?? "");
+          sendOnLock();
+        }
         setState(() {
-          if (_videoPaths.isEmpty) {
-            _videoPath = path;
-            sendOnLock();
-          } else {
-            _videoPaths.add(path ?? "");
-            sendOnLock();
-          }
+
         });
-        exportCircularVideo(path ?? "");
+        exportCircularVideo(newPath ?? "");
       } else {
         debugPrint("Invalid duration ");
         disposeOverlay();
@@ -1197,14 +1233,15 @@ class _CameraPageState extends State<VideNotebutton> {
               return;
             }
             final _minZoom = await cameraController?.getMinZoomLevel() ?? 1.0;
-            final maxExposure = await cameraController?.getMaxExposureOffset() ?? 3.0;
-            final _max = await cameraController?.getMaxZoomLevel() ?? 2.0;
-            debugPrint("max exposure $maxExposure max zoom ${_minZoom} $_max");
 
+            final _max = await cameraController?.getMaxZoomLevel() ?? 2.0;
             // Set zoom to the lowest (minZoom)
             try {
+
               await cameraController?.setZoomLevel(1);
               if(Platform.isAndroid) {
+                final maxExposure = await cameraController?.getMaxExposureOffset() ?? 3.0;
+                debugPrint("max exposure $maxExposure max zoom ${_minZoom} $_max");
                 await cameraController?.setFocusPoint(
                     Offset(0.5, 0.5)); // x: 0.5, y: 0.5 -> center of the frame
                 // Set exposure offset to max exposure value
