@@ -20,6 +20,7 @@ class VideoWidget extends ConsumerStatefulWidget {
   final bool shouldHide;
   final bool tapped;
   final bool show;
+  final bool isLoading;
   final int currentId;
   final Function()? onPlay;
   final Future<bool> Function()? isLastVideo;
@@ -39,6 +40,7 @@ class VideoWidget extends ConsumerStatefulWidget {
     required this.shouldHide,
     required this.tapped,
     required this.show,
+     this.isLoading=false,
     this.isLastVideo,
     Key? key,
   }) : super(key: key);
@@ -61,8 +63,8 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
       video: widget.filePath,
       thumbnailPath: (await getTemporaryDirectory()).path,
       imageFormat: ImageFormat.PNG,
-      maxHeight: 64, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
-      quality: 75,
+      maxHeight: 145, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+      quality: 90,
     );
     setState(() {
 

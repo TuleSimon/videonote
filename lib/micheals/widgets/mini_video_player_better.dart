@@ -20,6 +20,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
   final double width;
   final double height;
   final bool show;
+  final bool isLoading;
   final bool canBuild;
   final bool shouldHide;
   final double radius;
@@ -40,6 +41,7 @@ class MiniVideoPlayerBetter extends ConsumerStatefulWidget {
     this.isLastVideo,
     this.radius = 200,
     this.tapped,
+    this.isLoading=true,
     this.shouldHide = false,
     this.canBuild = true,
     this.onDuration,
@@ -68,8 +70,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
        video: widget.filePath,
        thumbnailPath: (await getTemporaryDirectory()).path,
        imageFormat: ImageFormat.PNG,
-       maxHeight: 64, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
-       quality: 75,
+       maxHeight: 145, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+       quality: 90,
      );
      setState(() {
 
@@ -421,7 +423,7 @@ init();
                                 alignment: Alignment.center,
                                 transform: Matrix4.identity()
                                   ..scale(
-                                    1.0,
+                                    widget.isLoading?-1.0: 1.0,
                                     // Flip horizontally
                                     1, // Flip vertically
                                   ),
