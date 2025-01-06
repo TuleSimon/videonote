@@ -36,6 +36,10 @@ dependencies:
   path: any
   path_provider: ^2.1.3
   flutter_riverpod: ^2.5.1
+  video_thumbnail:
+    git:
+      url: https://github.com/blackwadude/video_thumbnail.git
+      ref: master
   collection: ^1.17.0
   permission_handler: ^11.3.1
   cross_file: ^0.3.3+6

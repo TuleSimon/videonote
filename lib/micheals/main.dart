@@ -1229,6 +1229,7 @@ return mp4FilePath;
       await initCamera();
       if (cameraController?.value?.isInitialized != true) {
         cameraController!.initialize().then((_) async {
+          await Future.delayed(Duration(seconds: 1));
           try {
             if (!mounted) {
               return;
@@ -1238,10 +1239,10 @@ return mp4FilePath;
             final _max = await cameraController?.getMaxZoomLevel() ?? 2.0;
             // Set zoom to the lowest (minZoom)
             try {
-
               await cameraController?.setZoomLevel(1);
 
             } catch (e) {}
+            Vibration.vibrate(duration: 500, amplitude: 255);
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
             Overlay.of(context).insert(myOverayEntry!);
@@ -1291,7 +1292,6 @@ return mp4FilePath;
     // If both permissions are already granted
     if (cameraStatus.isGranted && microphoneStatus.isGranted) {
       debugPrint("Permissions already granted");
-      Vibration.vibrate(duration: 500, amplitude: 255);
       _showOverlayWithGesture(context);
       return false;
     }
@@ -1388,7 +1388,6 @@ return mp4FilePath;
         final isGranted = await requestCameraPermission();
         if (isGranted) {
           debugPrint("started");
-          Vibration.vibrate(duration: 500, amplitude: 255);
           _showOverlayWithGesture(context);
         }
       },

@@ -404,8 +404,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                     child: Image.file(File(imageFile!),
                                         key: Key(imageFile!),
                                         fit: BoxFit.cover)),
-                              widget.cameraController?.value.isInitialized !=
-                                      true && screenshotController==null
+                               screenshotController==null
                                   ? Container()
                                   : Positioned.fill(
                                       child: Screenshot(

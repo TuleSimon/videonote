@@ -840,6 +840,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.3"
+  video_thumbnail:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: master
+      resolved-ref: "7c6872eafe4a2162b179e0d990ddc1f9dea1ec01"
+      url: "https://github.com/blackwadude/video_thumbnail.git"
+    source: git
+    version: "0.5.3"
   visibility_detector:
     dependency: transitive
     description:

@@ -4,8 +4,10 @@ import 'package:videonote/micheals/provider/player_provider.dart';
 import 'package:videonote/micheals/overlay_screen.dart';
 import 'package:videonote/micheals/timer_controller.dart';
 import 'package:videonote/micheals/hole_widget.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -59,10 +61,24 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   betterPlayerControllerStreamController = StreamController.broadcast();
   Timer? _timer;
   Duration _duration = const Duration();
+  String? thumbNail;
 
+   void init()async{
+     thumbNail = await VideoThumbnail.thumbnailFile(
+       video: widget.filePath,
+       thumbnailPath: (await getTemporaryDirectory()).path,
+       imageFormat: ImageFormat.PNG,
+       maxHeight: 64, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+       quality: 75,
+     );
+     setState(() {
+
+     });
+   }
   @override
   void initState() {
     super.initState();
+init();
     WidgetsBinding.instance.addObserver(this); // Add observer
     // _initializeController();
   }
@@ -375,6 +391,17 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
           child: Stack(
             alignment: Alignment.center,
             children: [
+              if(thumbNail!=null)
+              Container(
+                clipBehavior: Clip.hardEdge,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle
+                ),
+                  width: widget.width,
+                  height: widget.height,
+                child: Image.file(File(thumbNail!),
+                fit: BoxFit.cover,),
+              ),
               StreamBuilder<BetterPlayerController?>(
                 stream: betterPlayerControllerStreamController.stream,
                 builder: (context, snapshot) {
@@ -401,8 +428,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                 child: (widget.shouldHide == true ||
                                     visiblity < 0.1 ||
                                     _controller?.isVideoInitialized() != true)
-                                    ? Container(
-                                    color: Colors.black)
+                                    ? Container()
                                     : BetterPlayer(
                                   controller: _controller!,
                                 )),
