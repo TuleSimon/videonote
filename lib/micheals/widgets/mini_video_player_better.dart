@@ -73,8 +73,10 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
        maxHeight: 145, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
        quality: 90,
      );
-     setState(() {
+     WidgetsBinding.instance.addPostFrameCallback((callback){
+       setState(() {
 
+       });
      });
    }
   @override
@@ -332,11 +334,15 @@ init();
   @override
   void didUpdateWidget(covariant MiniVideoPlayerBetter oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if(widget.filePath!= oldWidget.filePath){
+      init();
+    }
     if(widget.canBuild && !oldWidget.canBuild){
       if(_controller==null ){
         _initializeController();
       }
     }
+
       if (widget.tapped != null && widget.tapped != true ) {
         _controller?.setVolume(0.0);
         _controller?.setLooping(false);
@@ -401,8 +407,16 @@ init();
                 ),
                   width: widget.width,
                   height: widget.height,
-                child: Image.file(File(thumbNail!),
-                fit: BoxFit.cover,),
+                child: Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..scale(
+                        widget.isLoading?-1.0: 1.0,
+                        // Flip horizontally
+                        1, // Flip vertically
+                      ),
+                    child:Image.file(File(thumbNail!),
+                fit: BoxFit.cover,)),
               ),
               StreamBuilder<BetterPlayerController?>(
                 stream: betterPlayerControllerStreamController.stream,
