@@ -54,7 +54,7 @@ dependencies:
 #        path: ../EXT_betterplayer
     git:
       url: https://github.com/tezdacom/EXT_betterplayer.git
-      ref: main
+      ref: feat/simon
   native_video_player:
     #    path: ../EXT_betterplayer
     git:

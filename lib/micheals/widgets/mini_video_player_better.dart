@@ -70,7 +70,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
        video: widget.filePath,
        thumbnailPath: (await getTemporaryDirectory()).path,
        imageFormat: ImageFormat.PNG,
-       maxHeight: 145, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+       maxHeight: 0, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
        quality: 90,
      );
      WidgetsBinding.instance.addPostFrameCallback((callback){
@@ -82,7 +82,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   @override
   void initState() {
     super.initState();
-  if(!widget.isLoading){init();}
+  init();
     WidgetsBinding.instance.addObserver(this); // Add observer
     // _initializeController();
   }
@@ -334,11 +334,22 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   @override
   void didUpdateWidget(covariant MiniVideoPlayerBetter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if(widget.filePath!= oldWidget.filePath){
+
+    if(!widget.isLoading &&  oldWidget.isLoading){
+      loading = widget.isLoading;
+      hide= true;
       init();
+      Future.delayed(Duration(seconds: 2)).then((onValue){
+        hide=false;
+            setState(() {
+
+            });
+      });
     }
-    if(!widget.isLoading&&  oldWidget.isLoading){
-      init();
+    if(widget.filePath!=  oldWidget.filePath){
+      _freeController();
+      _initializeController();
+      loading = false;
     }
     if(widget.canBuild && !oldWidget.canBuild){
       if(_controller==null ){
@@ -364,6 +375,8 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
 
   bool wasInvisible = true;
+  bool hide = false;
+  late bool loading = widget.isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +427,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
                       ..scale(
-                        1.0,
+                        widget.filePath.contains("tempVideo")?-1.0: hide?-1.0:1.0,
                         // Flip horizontally
                         1, // Flip vertically
                       ),
@@ -442,11 +455,11 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                                 alignment: Alignment.center,
                                 transform: Matrix4.identity()
                                   ..scale(
-                                    widget.isLoading?-1.0: 1.0,
+                                    widget.filePath.contains("tempVideo")?-1.0: 1.0,
                                     // Flip horizontally
                                     1, // Flip vertically
                                   ),
-                                child: (widget.shouldHide == true ||
+                                child: (widget.shouldHide == true || hide==true ||
                                     visiblity < 0.1 ||
                                     _controller?.isVideoInitialized() != true)
                                     ? Container()

@@ -29,8 +29,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
-      resolved-ref: "9d535c4eee50d097845ef542e6b44ec660fd0e08"
+      ref: "feat/simon"
+      resolved-ref: "6cac37805ba9fae60a9148ac09cd3e12ca4285be"
       url: "https://github.com/tezdacom/EXT_betterplayer.git"
     source: git
     version: "0.0.84"

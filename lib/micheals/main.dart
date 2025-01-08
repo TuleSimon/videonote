@@ -446,7 +446,9 @@ class _CameraPageState extends State<VideNotebutton> {
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
 
-      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+      ffmpegCommand =  Platform.isAndroid?
+      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1:flags=fast_bilinear,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400:flags=fast_bilinear[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -c:a aac -pix_fmt yuv420p "$outputPath"'
+    :      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v  libx264 -preset ultrafast -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
 //      ffmpegCommand =     '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]${Platform.isAndroid?"hflip,":""}scale=400:-1,crop=400:400:(iw-400)/2:(ih-400)/2[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
 
 
@@ -512,7 +514,7 @@ class _CameraPageState extends State<VideNotebutton> {
     // Create the target MP4 file path
     final directory = tmpFile.parent.path;
     final fileNameWithoutExtension = tmpFile.uri.pathSegments.last.split('.').first;
-    final mp4FilePath = '$directory/$fileNameWithoutExtension.mp4';
+    final mp4FilePath = '$directory/${fileNameWithoutExtension}tempVideo.mp4';
 
     // Rename or copy the file to the new path
     try {
@@ -529,6 +531,58 @@ return mp4FilePath;
 
   }
 
+  Future<Directory> _getPlatformSpecificDirectory() async {
+    if (Platform.isAndroid) {
+      return (await (getExternalStorageDirectory() ??
+          getDownloadsDirectory() ?? getTemporaryDirectory()))!;
+    } else if (Platform.isIOS) {
+      return await getApplicationDocumentsDirectory();
+    } else {
+      throw Exception('Unsupported platform: ${Platform.operatingSystem}');
+    }
+  }
+  Future<String?> flipVideo(String inputPath) async {
+    // Generate output path
+    final directory = await _getPlatformSpecificDirectory();
+    final fileName = Uuid().v4();
+    final outputPath = '${directory.path}/flipped_$fileName.mp4';
+
+    // FFmpeg command for horizontal flip
+    final flipCommand =
+        '-i "$inputPath" -vf "hflip,format=yuv420p" -c:v libx264 -preset ultrafast -crf 23 -c:a copy "$outputPath"';
+    //
+    // '-i "$inputPath" -vf "hflip" -c:v libx264 -preset ultrafast -crf 23 -c:a copy "$outputPath"';
+
+    // Enable FFmpeg log callbacks for detailed output
+    FFmpegKitConfig.enableLogCallback((log) {
+      print('FFmpeg Log: ${log.getMessage()}');
+    });
+
+    FFmpegKitConfig.enableStatisticsCallback((statistics) {
+      print(
+          'FFmpeg Stats: Time=${statistics.getTime()}ms, Size=${statistics
+              .getSize()} bytes');
+    });
+
+    // Execute the FFmpeg command
+    print('Running FFmpeg command: $flipCommand');
+    final flipResult = await FFmpegKit.execute(flipCommand);
+    final returnCode = await flipResult.getReturnCode();
+
+    if (returnCode != null && returnCode.isValueSuccess()) {
+      print('Video flipped successfully: $outputPath');
+      return outputPath;
+    } else {
+      // Log detailed error information
+      final logMessages = await flipResult.getLogsAsString();
+      print('Error flipping video. FFmpeg Logs: $logMessages');
+
+      final failureMessage = await flipResult.getFailStackTrace();
+      print('Failure Message: $failureMessage');
+
+      return null;
+    }
+  }
 
   void saveFile(String? path) async{
     try {
