@@ -82,7 +82,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   @override
   void initState() {
     super.initState();
-init();
+  if(!widget.isLoading){init();}
     WidgetsBinding.instance.addObserver(this); // Add observer
     // _initializeController();
   }
@@ -337,6 +337,9 @@ init();
     if(widget.filePath!= oldWidget.filePath){
       init();
     }
+    if(!widget.isLoading&&  oldWidget.isLoading){
+      init();
+    }
     if(widget.canBuild && !oldWidget.canBuild){
       if(_controller==null ){
         _initializeController();
@@ -411,11 +414,13 @@ init();
                     alignment: Alignment.center,
                     transform: Matrix4.identity()
                       ..scale(
-                        widget.isLoading?-1.0: 1.0,
+                        1.0,
                         // Flip horizontally
                         1, // Flip vertically
                       ),
-                    child:Image.file(File(thumbNail!),
+                    child:Image.file(
+                      key: Key(widget.filePath),
+                      File(thumbNail!),
                 fit: BoxFit.cover,)),
               ),
               StreamBuilder<BetterPlayerController?>(

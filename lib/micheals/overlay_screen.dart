@@ -27,24 +27,23 @@ import 'dart:isolate';
 import 'hole_widget.dart';
 
 class OverlayScreen extends StatefulWidget {
-  const OverlayScreen(
-      {super.key,
-      required this.cameraController,
-      required this.onDone,
-      required this.offset,
-      required this.cameras,
-      required this.onCropped,
-      required this.onError,
-      required this.flipCamera,
-      required this.isLocked,
-      required this.isRecording,
-      required this.isRecordingPaused,
-      required this.lockObs,
-      required this.onStart,
-      required this.startedTime,
-      required this.getFilePath,
-      required this.isValidDuration,
-      required this.recordingController});
+  const OverlayScreen({super.key,
+    required this.cameraController,
+    required this.onDone,
+    required this.offset,
+    required this.cameras,
+    required this.onCropped,
+    required this.onError,
+    required this.flipCamera,
+    required this.isLocked,
+    required this.isRecording,
+    required this.isRecordingPaused,
+    required this.lockObs,
+    required this.onStart,
+    required this.startedTime,
+    required this.getFilePath,
+    required this.isValidDuration,
+    required this.recordingController});
 
   final Camera2.CameraController? cameraController;
   final List<Camera2.CameraDescription> cameras;
@@ -71,7 +70,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   bool isRecordingValid = false;
   String? _videoPath; // To store the path of the recorded video
   final List<String>? _videoPaths =
-      List.empty(growable: true); // To store the path of the recorded video
+  List.empty(growable: true); // To store the path of the recorded video
 
   Future<void> _shareVideoFile(String videoPath) async {
     try {
@@ -102,14 +101,14 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
     // Load the mask from assets
     final byteData =
-        await rootBundle.load('packages/videonote/assets/mask.png');
+    await rootBundle.load('packages/videonote/assets/mask.png');
     final file = File(maskPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
     return maskPath;
   }
 
-  Future<String?> concatenateVideos(
-      List<String> videoPaths, String tempOutputPath) async {
+  Future<String?> concatenateVideos(List<String> videoPaths,
+      String tempOutputPath) async {
     // Create a temporary text file to list all video files
     final concatFilePath = await _createConcatFile(videoPaths);
     // FFmpeg command to concatenate videos
@@ -146,7 +145,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
     if (_videoPaths!.isNotEmpty) {
       final tempOutputPath = '${directory?.path}/temp_${uuid.v4()}.mp4';
       final mergedVideoPath =
-          await concatenateVideos(_videoPaths, tempOutputPath);
+      await concatenateVideos(_videoPaths, tempOutputPath);
 
       if (mergedVideoPath == null) {
         print('Failed to concatenate videos.');
@@ -155,14 +154,14 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
       // Apply the mask to the concatenated video
       ffmpegCommand =
-          '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
+      '-i "$mergedVideoPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -c:v libx264 -pix_fmt yuv420p "$outputPath"';
     } else {
       print('Input Path: $inputPath');
 
       // iOS and Android use libx264 with full GPL
       final maskPath = await _copyMaskToTemporaryFolder();
       ffmpegCommand =
-          '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
+      '-i "$inputPath" -i "$maskPath" -filter_complex "[0:v]scale=400:400[video];[1:v]scale=400:400[mask];[video][mask]overlay=0:0[v]" -map "[v]" -map 0:a? -c:v libx264 -c:a aac -strict experimental -pix_fmt yuv420p "$outputPath"';
     }
 
     print('FFmpeg Command: $ffmpegCommand');
@@ -222,7 +221,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
       final file = File(path ?? "");
       final size = file.lengthSync(); // Get file size in bytes
       videoDetails['size'] =
-          '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
+      '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
       print(videoDetails);
       if (duration.inSeconds >= 2) {
         debugPrint("Reach here duration");
@@ -260,7 +259,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
             final file = File(single.file?.path ?? "");
             final size = file.lengthSync(); // Get file size in bytes
             videoDetails['size'] =
-                '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
+            '${(size / (1024 * 1024)).toStringAsFixed(2)} MB'; // Convert to MB
             print(videoDetails);
             if (widget.recordingController.isRecordingValid) {
               debugPrint("Reach here duration");
@@ -309,7 +308,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
   @override
   void dispose() {
-    imageFile=null;
+    imageFile = null;
     screenshotController = null;
   }
 
@@ -325,7 +324,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   Future<Directory> _getPlatformSpecificDirectory() async {
     if (Platform.isAndroid) {
       return (await (getExternalStorageDirectory() ??
-          getDownloadsDirectory()?? getTemporaryDirectory()))!;
+          getDownloadsDirectory() ?? getTemporaryDirectory()))!;
     } else if (Platform.isIOS) {
       return await getApplicationDocumentsDirectory();
     } else {
@@ -336,7 +335,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
   Future<String?> flipVideo(String inputPath) async {
     // Generate output path
     final directory = await _getPlatformSpecificDirectory();
-    final fileName =Uuid().v4();
+    final fileName = Uuid().v4();
     final outputPath = '${directory.path}/flipped_$fileName.mp4';
 
     // FFmpeg command for horizontal flip
@@ -352,7 +351,8 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
     FFmpegKitConfig.enableStatisticsCallback((statistics) {
       print(
-          'FFmpeg Stats: Time=${statistics.getTime()}ms, Size=${statistics.getSize()} bytes');
+          'FFmpeg Stats: Time=${statistics.getTime()}ms, Size=${statistics
+              .getSize()} bytes');
     });
 
     // Execute the FFmpeg command
@@ -376,14 +376,13 @@ class _OverlayScreenState extends State<OverlayScreen> {
   }
 
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.transparent,
-      width: MediaQuery.sizeOf(context).width,
+      width: MediaQuery
+          .sizeOf(context)
+          .width,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -391,41 +390,43 @@ class _OverlayScreenState extends State<OverlayScreen> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: FractionallySizedBox(
-                      widthFactor: 0.85,
-                      heightFactor: 0.5,
-                      child: AspectRatio(
-                          aspectRatio: 1 / 1,
+                  child: UnconstrainedBox(
+                      child: SizedBox(
+                          width: context.getWidth() * 0.85,
+                          height: context.getWidth() * 0.85,
                           child: ClipOval(
                               child: Stack(
-                            children: [
-                              if (imageFile != null)
-                                Positioned.fill(
-                                    child: Image.file(File(imageFile!),
-                                        key: Key(imageFile!),
-                                        fit: BoxFit.cover)),
-                               screenshotController==null
-                                  ? Container()
-                                  : Positioned.fill(
+                                children: [
+                                  if (imageFile != null)
+                                    Positioned.fill(
+                                        child: Image.file(File(imageFile!),
+                                            key: Key(imageFile!),
+                                            fit: BoxFit.cover)),
+                                  screenshotController == null
+                                      ? Container()
+                                      : Positioned.fill(
                                       child: Screenshot(
                                           controller: screenshotController!,
                                           child: Transform.scale(
-                                            scaleY: Platform.isAndroid?1.4: 1.3,
+                                            scaleY: Platform.isAndroid
+                                                ? 1.4
+                                                : 1.3,
                                             scaleX: Platform.isAndroid
                                                 ? frontCamera
-                                                    ? -1.0
-                                                    : 1.0
+                                                ? -1.0
+                                                : 1.0
                                                 : 1.0,
                                             child: Camera2.CameraPreview(
                                                 widget.cameraController!),
                                           ))),
-                            ],
-                          )))),
+                                ],
+                              )))
+                  ),
                 ),
                 Center(
                   child: ValueListenableBuilder<double>(
                     valueListenable:
-                        widget.recordingController.recordingDuration,
+                    widget.recordingController.recordingDuration,
                     builder: (context, duration, child) {
                       return CustomPaint(
                         size: const Size(380, 380),
@@ -463,7 +464,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 .setFlashMode(Camera2.FlashMode.always);
                           }
                           setState(
-                              () {}); // Update the UI to reflect the flash mode change
+                                  () {}); // Update the UI to reflect the flash mode change
                         }
                       },
                       child: CircleAvatar(
@@ -471,16 +472,16 @@ class _OverlayScreenState extends State<OverlayScreen> {
                           child: Center(
                             child: widget.cameraController != null
                                 ? widget.cameraController!.value.flashMode !=
-                                        Camera2.FlashMode.always
-                                    ? Icon(widget.cameraController!.value
-                                                .flashMode ==
-                                            Camera2.FlashMode.always
-                                        ? Icons.flash_on
-                                        : Icons.flash_auto)
-                                    : SvgPicture.asset(
-                                        "packages/videonote/assets/flash_icon.svg",
-                                        width: 25,
-                                      )
+                                Camera2.FlashMode.always
+                                ? Icon(widget.cameraController!.value
+                                .flashMode ==
+                                Camera2.FlashMode.always
+                                ? Icons.flash_on
+                                : Icons.flash_auto)
+                                : SvgPicture.asset(
+                              "packages/videonote/assets/flash_icon.svg",
+                              width: 25,
+                            )
                                 : SizedBox(),
                           )),
                     ),
@@ -498,41 +499,44 @@ class _OverlayScreenState extends State<OverlayScreen> {
 
                               //   Stop recording if it is active
                               if (widget.cameraController!.value
-                                      .isRecordingVideo ||
+                                  .isRecordingVideo ||
                                   widget.cameraController!.value
                                       .isRecordingPaused) {
                                 await widget.cameraController!
                                     .stopVideoRecording()
                                     .then((res) async {
-                                      if(frontCamera && Platform.isAndroid){
-                                        final flippedVideoPath = await flipVideo(res.path);
-                                        if(flippedVideoPath!=null){
-                                          widget.flipCamera(flippedVideoPath);
-                                        }
-                                      }
-                                      else {
-                                        widget.flipCamera(res.path);
-                                      }
+                                  if (frontCamera && Platform.isAndroid) {
+                                    final flippedVideoPath = await flipVideo(
+                                        res.path);
+                                    if (flippedVideoPath != null) {
+                                      widget.flipCamera(flippedVideoPath);
+                                    }
+                                  }
+                                  else {
+                                    widget.flipCamera(res.path);
+                                  }
                                   final directory = await _getPlatformSpecificDirectory();
-                                  final imageFilee = await screenshotController?.captureAndSave(directory.path,
-                                      fileName: Uuid().v4()+".jpg");
-                                    //Capture Done
-                                    setState(() {
-                                      imageFile = imageFilee;
-                                      debugPrint(imageFilee??"");
-                                      screenshotController = ScreenshotController();
-                                      setState(() {
-
-                                      });
-                                    });
-                                  }).catchError((onError) {
-                                    debugPrint("error: "+onError.toString());
-                                    imageFile = null;
-                                    screenshotController = ScreenshotController();
+                                  final imageFilee = await screenshotController
+                                      ?.captureAndSave(directory.path,
+                                      fileName: Uuid().v4() + ".jpg");
+                                  //Capture Done
+                                  setState(() {
+                                    imageFile = imageFilee;
+                                    debugPrint(imageFilee ?? "");
+                                    screenshotController =
+                                        ScreenshotController();
                                     setState(() {
 
                                     });
                                   });
+                                }).catchError((onError) {
+                                  debugPrint("error: " + onError.toString());
+                                  imageFile = null;
+                                  screenshotController = ScreenshotController();
+                                  setState(() {
+
+                                  });
+                                });
 
                                 print("Stopped current recording.");
                               }
@@ -545,7 +549,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                 frontCamera = false;
                                 setState(() {});
                               }
-                              else{
+                              else {
                                 frontCamera = true;
                                 setState(() {});
                               }
@@ -580,75 +584,75 @@ class _OverlayScreenState extends State<OverlayScreen> {
                   children: [
                     widget.isLocked
                         ? InkWell(
-                            onTap: () async {
-                              try {
-                                isRecordingValid =
-                                    widget.recordingController.isRecordingValid;
-                                widget.onDone("");
-                              } catch (e) {}
-                            },
-                            child: CircleAvatar(
-                                backgroundColor: const Color(0xFFD92D20),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(3.0),
-                                  child: SvgPicture.asset(
-                                    widget.isRecordingPaused
-                                        ? "packages/videonote/assets/camera_icon.svg"
-                                        : "packages/videonote/assets/pause.svg",
-                                    width: 25,
-                                    height: 25,
-                                  ),
-                                )),
-                          )
+                      onTap: () async {
+                        try {
+                          isRecordingValid =
+                              widget.recordingController.isRecordingValid;
+                          widget.onDone("");
+                        } catch (e) {}
+                      },
+                      child: CircleAvatar(
+                          backgroundColor: const Color(0xFFD92D20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: SvgPicture.asset(
+                              widget.isRecordingPaused
+                                  ? "packages/videonote/assets/camera_icon.svg"
+                                  : "packages/videonote/assets/pause.svg",
+                              width: 25,
+                              height: 25,
+                            ),
+                          )),
+                    )
                         : AnimatedContainer(
-                            duration: const Duration(milliseconds: 500),
-                            decoration: const BoxDecoration(
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(20),
-                                topRight: Radius.circular(20),
-                              ),
-                              color: Colors.white,
-                            ),
-                            transform: Matrix4.translationValues(
-                              0, // No horizontal movement
-                              widget.isRecording
-                                  ? widget.offset.y.abs() / 2
-                                  : 200,
-                              // Move vertically (200 units down when collapsed)
-                              0,
-                            ),
-                            height: 94,
-                            width: 45,
-                            child: Column(
-                              children: [
-                                const SizedBox(
-                                  height: 5,
-                                ),
-                                Icon(
-                                  widget.isLocked
-                                      ? Icons.lock_outlined
-                                      : Icons.lock_open_outlined,
-                                ),
-                                SizedBox(
-                                  height: 5 +
-                                      (widget.lockObs > -0.1
-                                          ? widget.lockObs
-                                          : 0),
-                                ),
-                                const Icon(
-                                  Icons.arrow_drop_up_sharp,
-                                ),
-                                if (widget.lockObs > -0.15) ...[
-                                  const SizedBox(
-                                    height: 5,
-                                  ),
-                                  const Icon(
-                                    Icons.arrow_drop_up_sharp,
-                                  ),
-                                ]
-                              ],
-                            ),
+                      duration: const Duration(milliseconds: 500),
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        color: Colors.white,
+                      ),
+                      transform: Matrix4.translationValues(
+                        0, // No horizontal movement
+                        widget.isRecording
+                            ? widget.offset.y.abs() / 2
+                            : 200,
+                        // Move vertically (200 units down when collapsed)
+                        0,
+                      ),
+                      height: 94,
+                      width: 45,
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 5,
                           ),
+                          Icon(
+                            widget.isLocked
+                                ? Icons.lock_outlined
+                                : Icons.lock_open_outlined,
+                          ),
+                          SizedBox(
+                            height: 5 +
+                                (widget.lockObs > -0.1
+                                    ? widget.lockObs
+                                    : 0),
+                          ),
+                          const Icon(
+                            Icons.arrow_drop_up_sharp,
+                          ),
+                          if (widget.lockObs > -0.15) ...[
+                            const SizedBox(
+                              height: 5,
+                            ),
+                            const Icon(
+                              Icons.arrow_drop_up_sharp,
+                            ),
+                          ]
+                        ],
+                      ),
+                    ),
                     const SizedBox(
                       width: 15,
                     )
@@ -730,7 +734,8 @@ class CircularOverlayPainter extends CustomPainter {
       ..color = Colors.black.withOpacity(0.7)
       ..style = PaintingStyle.fill;
 
-    final Paint transparentPaint = Paint()..blendMode = BlendMode.clear;
+    final Paint transparentPaint = Paint()
+      ..blendMode = BlendMode.clear;
 
     final double circleRadius = size.width * 0.4;
     final Offset circleCenter = Offset(size.width / 2, size.height / 2);
@@ -753,7 +758,7 @@ class VideoCroppingPlugin {
     final String outputPath = await _channel.invokeMethod('cropVideoToCircle', {
       'inputPath': inputPath,
       'outputPath':
-          '/path/to/output.mp4', // Define your output path dynamically
+      '/path/to/output.mp4', // Define your output path dynamically
     });
     return outputPath;
   }
