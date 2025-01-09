@@ -410,7 +410,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                           child: Transform.scale(
                                             scaleY: Platform.isAndroid
                                                 ? 1.4
-                                                : 1.3,
+                                                : 1.2,
                                             scaleX: Platform.isAndroid
                                                 ? frontCamera
                                                 ? -1.0
