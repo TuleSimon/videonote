@@ -1282,7 +1282,6 @@ return mp4FilePath;
       await initCamera();
       if (cameraController?.value?.isInitialized != true) {
         cameraController!.initialize().then((_) async {
-          await Future.delayed(Duration(seconds: 1));
           try {
             if (!mounted) {
               return;
@@ -1318,6 +1317,11 @@ return mp4FilePath;
           }
         });
       } else {
+        try {
+          await cameraController?.setZoomLevel(1);
+
+        } catch (e) {}
+        Vibration.vibrate(duration: 500, amplitude: 255);
         myOverayEntry = getMyOverlayEntry(
             contextt: context, x: buttonOffsetX, y: buttonOffsetY);
         Overlay.of(context).insert(myOverayEntry!);
@@ -1427,6 +1431,21 @@ return mp4FilePath;
           }
           setState(() {});
           setStatee?.call(() {});
+        }
+      },
+      onTapDown: (details)async{
+      await initCamera();
+      if (cameraController?.value?.isInitialized != true) {
+        await cameraController?.initialize();
+      }
+    },
+      onTapUp: (details) async{
+        if(cameraController?.value?.isInitialized==true){
+          if(isLocked!=true && myOverayEntry==null) {
+            if(cameraController?.value?.isRecordingVideo!=true) {
+              cameraController?.dispose();
+            }
+          }
         }
       },
       onVerticalDragEnd: (details) {
