@@ -1346,7 +1346,7 @@ return mp4FilePath;
       _hasPermission = hasPermission;
     });
   }
-
+  Timer? _timer;
   Future<bool> requestCameraPermission() async {
     final cameraStatus = await Permission.camera.status;
     final microphoneStatus = await Permission.microphone.status;
@@ -1472,6 +1472,11 @@ return mp4FilePath;
       onTapUp: (details) async{
         if(cameraController?.value?.isInitialized==true){
           menu.show(widgetKey: noteKey);
+          _timer?.cancel();
+          _timer = null;
+          _timer = Timer(Duration(milliseconds: 1000), () {
+            menu.dismiss();
+          });
           if(!isCurrentlyRecording) {
             if(cameraController?.value?.isRecordingVideo!=true) {
               cameraController?.dispose();

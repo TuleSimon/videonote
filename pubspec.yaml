@@ -50,6 +50,7 @@ dependencies:
   camera: ^0.11.0+2
   meta: ^1.10.0
   popup_menu_plus: ^0.0.6
+  synchronized: ^3.0.0
   cupertino_will_pop_scope: ^1.2.1
   better_player:
 #        path: ../EXT_betterplayer

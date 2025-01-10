@@ -119,11 +119,10 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                               100));
               // debugPrint("Video edned " + isVideoEnded.toString());
               if (isVideoEnded) {
-                WidgetsBinding.instance.addPostFrameCallback((res) async{
+                  if(!mounted) return;
                   setState(() {
                     _currentProgress = 0;});
                   widget.onPause?.call();
-                });
               }
 
 
@@ -146,10 +145,9 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     try {
       if (!File(widget.filePath).existsSync()) return;
       if (widget.filePath.isNotEmpty) {
-        if (_controller == null) {
           _controller =
-              ref.read(videoControllerProvider.notifier).getBetterPlayerController(widget.filePath);
-          if(_controller?.betterPlayerDataSource?.url!=widget.filePath){
+               ref.read(videoControllerProvider.notifier).getBetterPlayerController(widget.filePath);
+          if(_controller?.betterPlayerDataSource?.url!=widget.filePath ){
             _controller?.setupDataSource(BetterPlayerDataSource(
               BetterPlayerDataSourceType.file,
               bufferingConfiguration: BetterPlayerBufferingConfiguration(
@@ -169,7 +167,6 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
           }
           _controller?.addEventsListener(playerEvent);
           widget.onController?.call(_controller!);
-        }
       } else {
         debugPrint("Invalid file path");
       }
@@ -196,6 +193,26 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         _initialized = false;
       }
     }
+    catch(e){
+      ref.read(videoControllerProvider.notifier).freeBetterPlayerController(
+          _controller);
+    }
+  }
+
+  void _freeController2() {
+    try {
+      if (_controller != null) {
+        _controller?.removeEventsListener(playerEvent);
+        _controller?.pause();
+        _controller?.setVolume(0);
+        _controller?.videoPlayerController?.removeListener(playListener);
+        _controller = null;
+        if (!betterPlayerControllerStreamController.isClosed) {
+          betterPlayerControllerStreamController.add(null);
+        }
+        _initialized = false;
+      }
+    }
     catch(e){}
   }
 
@@ -204,6 +221,17 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
     if (!mounted) return;
     if (_controller?.isVideoInitialized() != true) return;
 
+    if (event.betterPlayerEventType == BetterPlayerEventType.setupDataSource){
+      BetterPlayerDataSource? currentDataSource =
+          _controller?.betterPlayerDataSource;
+
+      // Access the URL from the data source
+      String? url = currentDataSource?.url;
+      if(url!=widget.filePath){
+        _freeController2();
+        await _initializeController();
+      }
+    }
     if (event.betterPlayerEventType ==
         BetterPlayerEventType.initialized) {
       setState(() {
@@ -287,12 +315,14 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   void dispose() {
     _controller?.videoPlayerController?.removeListener(playListener);
     betterPlayerControllerStreamController.close();
+    _freeController();
     super.dispose();
   }
 
   void _togglePlayPause() {
     if (_controller == null ||
         _controller?.videoPlayerController?.value.initialized == false) {
+      _freeController2();
       _initializeController();
       return;
     }
@@ -349,16 +379,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
             });
       });
     }
-    if(widget.filePath!=  oldWidget.filePath){
-      _freeController();
-      _initializeController();
-      loading = false;
-    }
-    if(widget.canBuild && !oldWidget.canBuild){
-      if(_controller==null ){
-        _initializeController();
-      }
-    }
+
 
       if (widget.tapped != null && widget.tapped != true ) {
         _controller?.setVolume(0.0);
@@ -392,25 +413,25 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
           final visibleFraction = visibilityInfo.visibleFraction;
          visiblity=visibleFraction;
 
-         if(!widget.canBuild){
-           debugPrint("---------------- Scrolling so not buildinh Scrolling");
-           return;
-         }
          //view just became visible init contact
-          debugPrint("${visibleFraction} ${widget.radius}");
-         if(!wasInvisible && _controller==null && _timer?.isActive!=true) {
-           _initializeController();
-         }
-         if(wasInvisible && visibleFraction>0) {
+          debugPrint("${visibleFraction} ${wasInvisible.toString()}");
+
+
+         if(visibleFraction>0) {
            wasInvisible=false;
+           if(!widget.canBuild){
+             debugPrint("---------------- Scrolling so not buildinh Scrolling");
+             return;
+           }
            _timer?.cancel();
            _timer = null;
+
            _timer = Timer(Duration(milliseconds: 200), () {
                _initializeController();
            });
            return;
          }
-         else if(!wasInvisible && visibleFraction<=0){
+         else if( visibleFraction<=0){
            leftview = 2;
            _timer?.cancel();
            wasInvisible = true;

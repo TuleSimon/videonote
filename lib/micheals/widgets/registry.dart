@@ -46,15 +46,31 @@ class ReusableVideoListController {
     );
   }
 
-  /// Adds a controller to the usedBetterPlayerControllerRegistry and returns a new instance
+  /// Adds a controller to the usedBetterPlayerControllerRegistry or updates it if it already exists
   ReusableVideoListController addToUsedBetterPlayerRegistry(
       BetterPlayerController controller) {
+    // Check if the controller already exists in the registry
+    final existingIndex = usedBetterPlayerControllerRegistry.indexWhere(
+          (existingController) => existingController == controller,
+    );
+
+    // Update the registry if the controller exists
+    List<BetterPlayerController> updatedRegistry;
+    if (existingIndex != -1) {
+      updatedRegistry = List.from(usedBetterPlayerControllerRegistry);
+      updatedRegistry[existingIndex] = controller;
+    } else {
+      // Add the new controller to the registry
+      updatedRegistry = [
+        controller,
+        ...usedBetterPlayerControllerRegistry,
+      ];
+    }
+
+    // Return a new instance with the updated registry
     return ReusableVideoListController(
       betterPlayerControllerRegistry: betterPlayerControllerRegistry,
-      usedBetterPlayerControllerRegistry: [
-        ...usedBetterPlayerControllerRegistry,
-        controller
-      ],
+      usedBetterPlayerControllerRegistry: updatedRegistry,
     );
   }
 

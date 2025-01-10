@@ -40,15 +40,17 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
 
 
   BetterPlayerController? getBetterPlayerController(String path) {
-    BetterPlayerController? freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
+    BetterPlayerController? existingController = state.usedBetterPlayerControllerRegistry.firstWhereOrNull(
             (controller) =>
-        controller.betterPlayerDataSource?.url==path)?? state.betterPlayerControllerRegistry.firstWhereOrNull(
+        controller.betterPlayerDataSource?.url==path);
+    if(existingController!=null){
+      return existingController;
+    }
+    BetterPlayerController? freeController =state.betterPlayerControllerRegistry.firstWhereOrNull(
             (controller) =>
         !state.usedBetterPlayerControllerRegistry.contains(controller));
 
-    if (freeController != null) {
-      state = state.addToUsedBetterPlayerRegistry(freeController);
-    }
+
     if(freeController==null){
       debugPrint("no free controller");
       state.usedBetterPlayerControllerRegistry.last.pause();
@@ -56,6 +58,9 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
       freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
               (controller) =>
               !state.usedBetterPlayerControllerRegistry.contains(controller));
+    }
+    if (freeController != null) {
+      state = state.addToUsedBetterPlayerRegistry(freeController);
     }
 
     return freeController;
