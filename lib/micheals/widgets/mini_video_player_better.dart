@@ -119,8 +119,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                               100));
               // debugPrint("Video edned " + isVideoEnded.toString());
               if (isVideoEnded) {
-
-                WidgetsBinding.instance.addPostFrameCallback((res) {
+                WidgetsBinding.instance.addPostFrameCallback((res) async{
                   setState(() {
                     _currentProgress = 0;});
                   widget.onPause?.call();
@@ -204,6 +203,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
   void playerEvent(BetterPlayerEvent event) async{
     if (!mounted) return;
     if (_controller?.isVideoInitialized() != true) return;
+
     if (event.betterPlayerEventType ==
         BetterPlayerEventType.initialized) {
       setState(() {
@@ -225,14 +225,18 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
       final totalDuration =
       event.parameters?['duration'] as Duration?;
       if (progress != null && totalDuration != null ) {
-        setState(() {
-          if (widget.tapped == true) {
+        WidgetsBinding.instance.addPostFrameCallback((res){
+          setState(() {
             _currentProgress = progress.inMilliseconds /
                 totalDuration.inMilliseconds;
-          }
+          });
         });
 
-        if (_currentProgress >= 0.99) {
+
+    //    debugPrint("current progress $_currentProgress");
+
+        if (_currentProgress >= 0.95) {
+        //  debugPrint("hhere $visiblity $leftview");
           final lastVideo = await widget?.isLastVideo?.call();
           if (widget.tapped == true) {
             widget.onPause?.call();
@@ -247,8 +251,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
               });
             }
           } else {
-            _currentProgress = 0;
-            debugPrint("Progress or duration is null");
+         //   debugPrint("Progress or duration is null");
           }
         }
       }
@@ -365,11 +368,14 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
 
     if (widget.tapped != null && widget.tapped == true) {
       if(oldWidget.tapped!=true) {
-        _controller?.seekTo(Duration(seconds: 0));
         _controller?.setVolume(1.0);
-        _controller?.setLooping(false);
+        leftview=2;
+        _controller?.seekTo(Duration(seconds: 0)).then((onValue){
+          _controller?.play();
+        });
+
       }
-      _controller?.play();
+
     }
   }
 
@@ -385,12 +391,16 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
         onVisibilityChanged: (visibilityInfo) {
           final visibleFraction = visibilityInfo.visibleFraction;
          visiblity=visibleFraction;
+
          if(!widget.canBuild){
            debugPrint("---------------- Scrolling so not buildinh Scrolling");
            return;
          }
          //view just became visible init contact
           debugPrint("${visibleFraction} ${widget.radius}");
+         if(!wasInvisible && _controller==null && _timer?.isActive!=true) {
+           _initializeController();
+         }
          if(wasInvisible && visibleFraction>0) {
            wasInvisible=false;
            _timer?.cancel();
@@ -482,7 +492,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                     child: CustomPaint(
                       size: Size(600, 1200),
                       painter: CircularProgressPainter(
-                        progress: _currentProgress,
+                        progress: widget.tapped==true?_currentProgress:0,
                         color: Color(0xFFE1FEC6),
                         backgroundColor: Colors.white,
                         max: 1.0,
@@ -504,7 +514,7 @@ class _MiniVideoPlayer extends ConsumerState<MiniVideoPlayerBetter>   with Widge
                       ),
                     )),
 
-              if (_controller?.videoPlayerController?.value?.isPlaying!=true && (widget.show || widget.tapped!=true))
+              if (_controller?.videoPlayerController?.value?.isPlaying!=true && (widget.show || (widget.tapped!=true && leftview<0)))
                   Positioned(
                       bottom: 0,
                       left: 0,

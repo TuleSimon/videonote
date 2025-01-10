@@ -46,9 +46,9 @@ class DragValue {
 }
 
 class VideNotebutton extends StatefulWidget {
-  final Function(String) onAddFile;
-  final Function() onStarted;
-  final Function(String) onCropped;
+  final Function(String,String) onAddFile;
+  final Function(String) onStarted;
+  final Function(String,String) onCropped;
   final Future<File> Function(String) getFilePath;
   final Function() onTap;
   final Function()? onCancel;
@@ -102,7 +102,7 @@ class _CameraPageState extends State<VideNotebutton> {
       0], // Fallback to the first camera if no front camera is found
     );
     cameraController =
-        Camera2.CameraController(frontCamera, ResolutionPreset.low);
+        Camera2.CameraController(frontCamera, ResolutionPreset.medium);
   }
 
   @override
@@ -247,7 +247,7 @@ class _CameraPageState extends State<VideNotebutton> {
     stopVideoRecording(shouldDo: false);
     sendRecording = true;
     if (_croppedvideoPath != null) {
-      widget.onCropped(_croppedvideoPath!);
+      widget.onCropped(_croppedvideoPath!,tempId);
       sendRecording = false;
       _videoPaths.clear();
     }
@@ -385,7 +385,7 @@ class _CameraPageState extends State<VideNotebutton> {
         return null;
       }
       else{
-        widget?.onAddFile(mergedVideoPath);
+        widget?.onAddFile(mergedVideoPath,tempId);
       }
       if (false) {
         // Call the iOS MethodChannel to clip the video
@@ -397,7 +397,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
           if (result != null) {
             if (sendRecording) {
-              widget.onCropped(outputPath);
+              widget.onCropped(outputPath,tempId);
               sendRecording = false;
               _videoPaths.clear();
             } else {
@@ -429,7 +429,7 @@ class _CameraPageState extends State<VideNotebutton> {
 
           if (result != null) {
             if (sendRecording) {
-              widget.onCropped(outputPath);
+              widget.onCropped(outputPath,tempId);
               sendRecording = false;
               _videoPaths.clear();
             } else {
@@ -474,7 +474,7 @@ class _CameraPageState extends State<VideNotebutton> {
       if (ReturnCode.isSuccess(returnCode)) {
         print('Video exported successfully to $outputPath');
         if (sendRecording) {
-          widget.onCropped(outputPath);
+          widget.onCropped(outputPath,tempId);
           sendRecording = false;
           _videoPaths.clear();
         } else {
@@ -606,7 +606,7 @@ return mp4FilePath;
         if (_videoPaths.isEmpty) {
            newPath = await renameOrCopyTmpToMp4(path??"");
           _videoPath = newPath;
-          widget?.onAddFile(newPath!);
+          widget?.onAddFile(newPath!,tempId);
           sendOnLock();
           setState(() {
 
@@ -1278,6 +1278,8 @@ return mp4FilePath;
 
   StreamController<double> postionStream = StreamController<double>();
 
+  String tempId=Uuid().v4();
+
   void _showOverlayWithGesture(BuildContext context) async {
     if (myOverayEntry == null) {
       await initCamera();
@@ -1299,7 +1301,8 @@ return mp4FilePath;
             myOverayEntry = getMyOverlayEntry(
                 contextt: context, x: buttonOffsetX, y: buttonOffsetY);
             Overlay.of(context).insert(myOverayEntry!);
-            widget.onStarted();
+            tempId = Uuid().v4();
+            widget.onStarted(tempId);
             setState(() {});
           } catch (e) {
             debugPrint(e.toString());
@@ -1326,7 +1329,8 @@ return mp4FilePath;
         myOverayEntry = getMyOverlayEntry(
             contextt: context, x: buttonOffsetX, y: buttonOffsetY);
         Overlay.of(context).insert(myOverayEntry!);
-        widget.onStarted();
+        tempId = Uuid().v4();
+        widget.onStarted(tempId);
       }
       setState(() {});
     }
@@ -1417,7 +1421,7 @@ return mp4FilePath;
         height: 30,
         color: Colors.white,
         child: Padding(padding: EdgeInsets.symmetric(horizontal: 5,vertical: 2),child: Text("Tap and hold",
-        textAlign: TextAlign.center)),
+        textAlign: TextAlign.center,style: TextStyle(fontSize: 12),)),
       ),
       onClickMenu: onDismiss,
       onDismiss: (){});
@@ -1455,7 +1459,11 @@ return mp4FilePath;
         }
       },
       onTapDown: (details)async{
-        Vibration.vibrate(duration: 300);
+        if (Platform.isAndroid) {
+          HapticFeedback.vibrate();
+        } else if (Platform.isIOS) {
+          HapticFeedback.mediumImpact();
+        }
       await initCamera();
       if (cameraController?.value?.isInitialized != true) {
         await cameraController?.initialize();

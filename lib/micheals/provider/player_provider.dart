@@ -51,8 +51,8 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
     }
     if(freeController==null){
       debugPrint("no free controller");
-      state.usedBetterPlayerControllerRegistry.first.pause();
-      freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.first);
+      state.usedBetterPlayerControllerRegistry.last.pause();
+      freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.last);
       freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
               (controller) =>
               !state.usedBetterPlayerControllerRegistry.contains(controller));
