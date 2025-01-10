@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:videonote/camera_audionote.dart';
+import 'package:popup_menu_plus/popup_menu_plus.dart';
 import 'package:better_player/better_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
@@ -667,7 +668,7 @@ return mp4FilePath;
       widget.onCancel?.call();
     }
   }
-
+  GlobalKey noteKey = GlobalKey();
   @override
   void dispose() {
     _recordingController.stopRecording();
@@ -1400,7 +1401,26 @@ return mp4FilePath;
 
     return false;
   }
-
+  void onDismiss(item){
+    menu.dismiss();
+  }
+ late PopupMenu menu = PopupMenu(
+      context: context,
+      config: const MenuConfig(
+        type: MenuType.custom,
+        itemHeight: 40,
+        itemWidth: 70,
+        backgroundColor: Colors.white,
+      ),
+      content: Container(
+        width: 70,
+        height: 30,
+        color: Colors.white,
+        child: Padding(padding: EdgeInsets.symmetric(horizontal: 5,vertical: 2),child: Text("Tap and hold",
+        textAlign: TextAlign.center)),
+      ),
+      onClickMenu: onDismiss,
+      onDismiss: (){});
   @override
   Widget build(BuildContext contexts) {
     final size = MediaQuery
@@ -1409,6 +1429,7 @@ return mp4FilePath;
 
     // Show the camera interface
     return GestureDetector(
+      key: noteKey,
       onVerticalDragStart: (details) {
         debugPrint("Vertical drag started at ${details.globalPosition}");
       },
@@ -1434,6 +1455,7 @@ return mp4FilePath;
         }
       },
       onTapDown: (details)async{
+        Vibration.vibrate(duration: 300);
       await initCamera();
       if (cameraController?.value?.isInitialized != true) {
         await cameraController?.initialize();
@@ -1441,11 +1463,15 @@ return mp4FilePath;
     },
       onTapUp: (details) async{
         if(cameraController?.value?.isInitialized==true){
-          if(isLocked!=true && myOverayEntry==null) {
+          menu.show(widgetKey: noteKey);
+          if(!isCurrentlyRecording) {
             if(cameraController?.value?.isRecordingVideo!=true) {
               cameraController?.dispose();
             }
           }
+        }
+        else{
+          menu.show(widgetKey: noteKey);
         }
       },
       onVerticalDragEnd: (details) {

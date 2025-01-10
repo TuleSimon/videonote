@@ -579,6 +579,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  popup_menu_plus:
+    dependency: "direct main"
+    description:
+      name: popup_menu_plus
+      sha256: "80c53b32daebb7480a14688fdafb16ff767ba8c6163e5a51918a1302ba53dd14"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   posix:
     dependency: transitive
     description:
