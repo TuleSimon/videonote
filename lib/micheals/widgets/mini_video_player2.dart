@@ -336,11 +336,8 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
                 child: UnconstrainedBox(
                     child: GestureDetector(
                   onTap: _togglePlayPause,
-                  child: SvgPicture.asset(
-                    "assets/play.svg",
-                    package: "videonote",
-                    width: 65,
-                  ),
+                  child:  Icon(Icons.play_circle_rounded,size: 65,
+                      color:Color(0xFFE1FEC6) ),
                 )),
               ),
             if (!widget.show)
