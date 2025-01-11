@@ -2,6 +2,7 @@ library videonote;
 
 export 'micheals/widgets/mini_video_player.dart';
 export 'micheals/widgets/mini_video_player2.dart';
+export 'micheals/widgets/mini_video_player3.dart';
 export 'reusuable/model.dart';
 export 'reusuable/reusable_video_list_controller.dart';
 export 'package:videonote/reusuable/reusable_video_list_controller.dart';
