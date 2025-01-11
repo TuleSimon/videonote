@@ -95,6 +95,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
     }
   }
 
+
   init(NativeVideoPlayerController controllerr) async {
     try {
       final oldcontrol = controller;
@@ -106,7 +107,6 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
     controller = controllerr;
     controller!.onPlaybackReady.addListener(() {
       _duration = Duration(seconds: controllerr.videoInfo?.duration ?? 0);
-      setState(() {});
       if (_duration!.inSeconds < 1) {
         controller?.onPlaybackEnded.removeListener(endlistener);
         controller?.onPlaybackStatusChanged.removeListener(playbackStatus);
@@ -239,13 +239,14 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
     } else {
       final isVideoEnded =
           (controller?.playbackInfo?.positionFraction ?? 0) >= 0.9;
+
       // debugPrint(
       //     "video $isVideoEnded ${_controller?.videoPlayerController?.value.position} - ${_controller?.videoPlayerController?.value.duration}");
       if (widget.tapped != null && widget.tapped != true) {
-        controller?.seekTo(0);
+       await controller?.seekTo(0);
       } else if (isVideoEnded) {
         // Restart the video if it has ended
-        controller?.seekTo(0);
+        await controller?.seekTo(0);
         controller?.play();
       } else {
         controller?.play();
@@ -264,6 +265,16 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
           controller?.play();
         });
       }
+    }
+     if (widget.tapped != true && oldWidget.tapped==true) {
+      if (visibility > 0.1 ) {
+        controller?.seekTo(0).then((onValue) {
+          controller?.play();
+        });
+      }
+    }
+    if(widget.tapped==true && (controller?.playbackInfo?.volume??0)<1){
+      controller?.setVolume(1);
     }
   }
 
@@ -327,7 +338,7 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
                 ),
               ),
             ),
-            if (!_isPlaying && widget.tapped != true)
+            if (leftview<0 && controller?.playbackInfo?.status!=PlaybackStatus.playing && widget.tapped != true)
               Positioned(
                 bottom: 0,
                 left: 0,

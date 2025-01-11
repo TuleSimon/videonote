@@ -34,6 +34,7 @@ class Assets {
   static const String michealsHoleWidget = 'lib/micheals/hole_widget.dart';
   static const String michealsMain = 'lib/micheals/main.dart';
   static const String michealsOverlayScreen = 'lib/micheals/overlay_screen.dart';
+  static const String michealsOverlayScreenIos = 'lib/micheals/overlay_screen_ios.dart';
   static const String michealsTimerController = 'lib/micheals/timer_controller.dart';
   static const String providerPlayerProvider = 'lib/micheals/provider/player_provider.dart';
   static const String reusuableModel = 'lib/reusuable/model.dart';

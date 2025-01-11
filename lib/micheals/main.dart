@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'overlay_screen.dart';
+import 'overlay_screen_ios.dart';
 import 'widgets/mini_video_player.dart';
 import 'package:videonote/micheals/widgets/mini_video_player_better.dart';
 import 'package:videonote/micheals/widgets/mini_video_player_better_list.dart';
@@ -819,7 +820,66 @@ return mp4FilePath;
                           child: ValueListenableBuilder(
                               valueListenable: buttonOffsetX2,
                               builder: (context, value, child) {
-                                return OverlayScreen(
+                                return Platform.isAndroid ? OverlayScreen(
+                                  isRecording: isCurrentlyRecording,
+                                  recordingController: _recordingController,
+                                  isValidDuration: isValidDuration,
+                                  isRecordingPaused: isRecordingPaused,
+                                  cameraController: cameraController,
+                                  lockObs: lockObs,
+                                  flipCamera: (paths) {
+                                    _videoPaths.add(paths);
+                                  },
+                                  startedTime: _recordingStartTime,
+                                  cameras: _cameras,
+                                  getFilePath: widget.getFilePath,
+                                  isLocked: isLocked,
+                                  onError: () {
+                                    cancelOnLock();
+                                  },
+                                  onStart: () {
+                                    debugPrint("start recording");
+                                    startRecording();
+                                  },
+                                  onDone: (String path) async {
+                                    if (cameraController
+                                        ?.value?.isRecordingPaused ==
+                                        true) {
+                                      isRecordingPaused = false;
+                                      _recordingController.playRecording();
+                                      await cameraController
+                                          ?.resumeVideoRecording();
+                                      setState(() {});
+                                      setStatee?.call(() {});
+                                    } else {
+                                      isRecordingPaused = true;
+                                      _recordingController.pauseRecording();
+                                      await cameraController
+                                          ?.pauseVideoRecording();
+                                      setState(() {});
+                                      setStatee?.call(() {});
+                                    }
+                                    // sendRecording = false;
+                                    // setState(() {});
+                                    // stopVideoRecording();
+
+                                    // _videoPath = path;
+                                    // debugPrint("OnDonePath is $_videoPath");
+                                    // setState(() {
+                                    //   sendOnLock();
+                                    // });
+                                  },
+                                  offset: value,
+                                  onCropped: (String path) {
+                                    // if (sendRecording) {
+                                    //   widget.onCropped(path);
+                                    //   sendRecording = false;
+                                    // } else {
+                                    //   _croppedvideoPath = path;
+                                    // }
+                                  },
+                                ) :
+                                OverlayScreenIos(
                                   isRecording: isCurrentlyRecording,
                                   recordingController: _recordingController,
                                   isValidDuration: isValidDuration,
