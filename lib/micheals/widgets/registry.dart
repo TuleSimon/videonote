@@ -1,8 +1,9 @@
 import 'package:better_player/better_player.dart';
 import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 
-class ReusableVideoListController {
+class ReusableVideoListController extends Equatable {
   final List<BetterPlayerController> betterPlayerControllerRegistry;
   final List<BetterPlayerController> usedBetterPlayerControllerRegistry;
 
@@ -97,4 +98,11 @@ class ReusableVideoListController {
    }
    catch(e){}
   }
+
+  @override
+  List<Object> get props {
+    return [betterPlayerControllerRegistry,usedBetterPlayerControllerRegistry];
+  }
+
+
 }

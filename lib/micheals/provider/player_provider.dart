@@ -19,6 +19,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
     for (int index = 0; index < (3); index++) {
       controllers.add(
         BetterPlayerController(
+
           BetterPlayerConfiguration(
             handleLifecycle: false,
             autoDispose: false,
@@ -27,9 +28,10 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
               showControlsOnInitialize: false,
             ),
             autoPlay: true,
-            looping: false,
+            looping: true,
             aspectRatio: 9 / 16,
             fit: BoxFit.cover,
+
           ),
         ),
       );
@@ -40,6 +42,7 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
 
 
   BetterPlayerController? getBetterPlayerController(String path) {
+    debugPrint("Current list ${state.usedBetterPlayerControllerRegistry}");
     BetterPlayerController? existingController = state.usedBetterPlayerControllerRegistry.firstWhereOrNull(
             (controller) =>
         controller.betterPlayerDataSource?.url==path);
@@ -53,23 +56,27 @@ class VideoControllerNotifier extends StateNotifier<ReusableVideoListController>
 
     if(freeController==null){
       debugPrint("no free controller");
-      state.usedBetterPlayerControllerRegistry.last.pause();
-      freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.last);
-      freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
-              (controller) =>
-              !state.usedBetterPlayerControllerRegistry.contains(controller));
+      // state.usedBetterPlayerControllerRegistry.last.pause();
+      // freeBetterPlayerController(state.usedBetterPlayerControllerRegistry.last);
+      // freeController = state.betterPlayerControllerRegistry.firstWhereOrNull(
+      //         (controller) =>
+      //         !state.usedBetterPlayerControllerRegistry.contains(controller));
     }
     if (freeController != null) {
       state = state.addToUsedBetterPlayerRegistry(freeController);
     }
+    debugPrint("Current list ${state.usedBetterPlayerControllerRegistry}");
 
     return freeController;
   }
 
-  void freeBetterPlayerController(
-      BetterPlayerController? betterPlayerController) {
+  void freeBetterPlayerController(BetterPlayerController? betterPlayerController) {
+    debugPrint("Freeing ${betterPlayerController?.betterPlayerDataSource?.url}");
     if(betterPlayerController==null) return;
-   state = state.removeFromUsedBetterPlayerRegistry(betterPlayerController!);
+    debugPrint("Old list ${state.usedBetterPlayerControllerRegistry}");
+    final newList = state.removeFromUsedBetterPlayerRegistry(betterPlayerController!);
+   debugPrint("Old list ${newList.usedBetterPlayerControllerRegistry}");
+   state = newList;
 
   }
 

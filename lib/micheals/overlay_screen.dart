@@ -413,7 +413,7 @@ class _OverlayScreenState extends State<OverlayScreen> {
                                                 : 1.2,
                                             scaleX: Platform.isAndroid
                                                 ? frontCamera
-                                                ? -1.1
+                                                ? -1.0
                                                 : 1.0
                                                 : 1.0,
                                             child: Camera2.CameraPreview(
