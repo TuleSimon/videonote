@@ -259,12 +259,10 @@ class _VideoWidgetState extends ConsumerState<VideoWidget>
     if (widget.tapped != true && widget.tapped != null) {
       controller?.setVolume(0);
     } else if (widget.tapped == true && oldWidget.tapped!=true) {
-      if (visibility > 0.1 ) {
         controller?.seekTo(0).then((onValue) {
           controller?.setVolume(1);
           controller?.play();
         });
-      }
     }
      if (widget.tapped != true && oldWidget.tapped==true) {
       if (visibility > 0.1 ) {

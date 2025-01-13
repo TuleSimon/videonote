@@ -104,14 +104,14 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               VideNotebutton(
-                  onAddFile: (file) async {
+                  onAddFile: (file,id) async {
                     debugPrint("here $file");
-                    recording.add(file);
+                   // recording.add(file);
                     shouldHide = false;
-                     final result = await Share.shareXFiles([XFile(file)]);
+                  //   final result = await Share.shareXFiles([XFile(file)]);
                     setState(() {});
                   },
-                  onStarted: () {
+                  onStarted: (id) {
                     shouldHide = true;
                     setState(() {
 
@@ -136,12 +136,12 @@ class _MyAppState extends State<MyApp> {
                         '${directory?.path}/output_circular_${uuid.v4()}.mp4';
                     return File(outputPath);
                   },
-                  onCropped: (file) async {
+                  onCropped: (file,id) async {
                     debugPrint("here cropped $file");
                     recording.add(file);
                     shouldHide = false;
                     setState(() {});
-                    final result = await Share.shareXFiles([XFile(file)]);
+                //    final result = await Share.shareXFiles([XFile(file)]);
                   },
                   child: Icon(Icons.camera),
                   onTap: () async {}),
